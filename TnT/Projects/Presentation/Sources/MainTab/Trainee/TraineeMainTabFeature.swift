@@ -72,6 +72,7 @@ public struct TraineeMainTabFeature {
             case let .view(view):
                 switch view {
                 case .selectTab(let tab):
+                    guard state.tabInfo != tab else { return .none }
                     switch tab {
                     case .home:
                         state = .home(.init())

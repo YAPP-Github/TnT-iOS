@@ -51,7 +51,6 @@ public struct TraineeDietRecordDetailView: View {
             }
         }
         .navigationBarBackButtonHidden()
-        .keyboardDismissOnTap()
         .onAppear {
             send(.onAppear)
         }

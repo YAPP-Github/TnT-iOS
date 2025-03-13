@@ -48,6 +48,13 @@ public struct CreateProfileFeature {
         }
         /// 유저의 최대 이름 길이
         var view_nameMaxLength: Int?
+        /// 표시되는 팝업
+        var view_popUp: PopUp?
+        /// 팝업 표시 여부
+        var view_isPopUpPresented: Bool
+        
+        // MARK: SubFeature state
+        var photoLibraryState = PhotoLibraryFeature.State()
         
         /// `CreateProfileFeature.State`의 생성자
         /// - Parameters:
@@ -74,7 +81,9 @@ public struct CreateProfileFeature {
             view_isNextButtonEnabled: Bool = false,
             view_isNavigating: Bool = false,
             view_photoPickerItem: PhotosPickerItem? = nil,
-            view_nameMaxLength: Int? = nil
+            view_nameMaxLength: Int? = nil,
+            view_popUp: PopUp? = nil,
+            view_isPopUpPresented: Bool = false
         ) {
             self._signUpEntity = signUpEntity
             self.userType = userType
@@ -87,22 +96,27 @@ public struct CreateProfileFeature {
             self.view_isNavigating = view_isNavigating
             self.view_photoPickerItem = view_photoPickerItem
             self.view_nameMaxLength = view_nameMaxLength
+            self.view_popUp = view_popUp
+            self.view_isPopUpPresented = view_isPopUpPresented
         }
     }
     
     @Dependency(\.userUseCase) private var userUseCase: UserUseCase
     @Dependency(\.userUseRepoCase) private var userUseRepoCase: UserRepository
+    @Dependency(\.socialLogInUseCase) private var socialLoginUseCase: SocialLoginUseCase
     @Dependency(\.keyChainManager) var keyChainManager
     
     public enum Action: Sendable, ViewAction {
-        /// 네비게이션 여부 설정
-        case setNavigating(RoutingScreen)
-        /// 선택된 이미지 데이터 저장
-        case imagePicked(Data?)
         /// 뷰에서 발생한 액션을 처리합니다.
         case view(View)
-        /// 회원가입 POST
-        case postSignUp
+        /// api 콜 액션을 처리합니다
+        case api(APIAction)
+        /// 하위 피처 액션을 처리합니다
+        case subFeature(SubFeatureAction)
+        /// 선택된 이미지 데이터 저장
+        case imagePicked(Data?)
+        /// 네비게이션 여부 설정
+        case setNavigating(RoutingScreen)
         
         @CasePathable
         public enum View: Sendable, BindableAction {
@@ -112,12 +126,34 @@ public struct CreateProfileFeature {
             case tapWriteButton
             /// "다음으로" 버튼이 눌렸을 때
             case tapNextButton
+            /// 팝업 좌측 secondary 버튼 탭
+            case tapPopUpSecondaryButton(popUp: PopUp?)
+            /// 팝업 우측 primary 버튼 탭
+            case tapPopUpPrimaryButton(popUp: PopUp?)
+        }
+        
+        @CasePathable
+        public enum APIAction: Sendable {
+            /// FCM 토큰 get
+            case getFCMToken
+            /// 회원가입 POST
+            case postSignUp(fcmToken: String)
+        }
+        
+        @CasePathable
+        public enum SubFeatureAction: Sendable {
+            case photoLibrary(PhotoLibraryFeature.Action)
         }
     }
     
     public init() {}
     
     public var body: some ReducerOf<Self> {
+        
+        Scope(state: \.photoLibraryState, action: \.subFeature.photoLibrary) {
+            PhotoLibraryFeature()
+        }
+        
         BindingReducer(action: \.view)
         
         Reduce { state, action in
@@ -125,6 +161,10 @@ public struct CreateProfileFeature {
             case .view(let action):
                 switch action {
                 case .binding(\.userName):
+                    let maxLength = userUseCase.getMaxNameLength()
+                    if state.userName.count > maxLength {
+                        state.userName = String(state.userName.prefix(maxLength))
+                    }
                     return self.validate(&state)
                     
                 case .binding(\.view_photoPickerItem):
@@ -149,27 +189,67 @@ public struct CreateProfileFeature {
                     case .trainee:
                         return .send(.setNavigating(.traineeBasicInfoInput))
                     case .trainer:
-                        return .send(.postSignUp)
+                        return .send(.api(.getFCMToken))
+                    }
+                    
+                case .tapPopUpSecondaryButton(let popUp):
+                    guard popUp != nil else { return .none }
+                    return setPopUpStatus(&state, status: nil)
+                    
+                    
+                case .tapPopUpPrimaryButton(let popUp):
+                    guard popUp != nil else { return .none }
+                    
+                    if popUp == .photoAuthorization,
+                        let url = URL(string: UIApplication.openSettingsURLString),
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                    
+                    return .none
+                }
+                
+            case .api(let action):
+                switch action {
+                case .getFCMToken:
+                    return .run { send in
+                        if let fcmToken = try? await socialLoginUseCase.getFCMToken() {
+                            await send(.api(.postSignUp(fcmToken: fcmToken)))
+                        } else {
+                            let fcmToken: String? = try? keyChainManager.read(for: .apns)
+                            await send(.api(.postSignUp(fcmToken: fcmToken ?? "")))
+                        }
+                    }
+                    
+                case .postSignUp(let fcmToken):
+                    state.$signUpEntity.withLock { $0.fcmToken = fcmToken }
+                    
+                    guard let reqDTO = state.signUpEntity.toDTO() else {
+                        return .none
+                    }
+                    let imgData = state.signUpEntity.imageData
+                    
+                    return .run { send in
+                        let result = try await userUseRepoCase.postSignUp(reqDTO, profileImage: imgData).toEntity()
+                        saveSessionId(result.sessionId)
+                        await send(.setNavigating(.trainerSignUpComplete(result)))
                     }
                 }
                 
-            case .postSignUp:
-                guard let reqDTO = state.signUpEntity.toDTO() else {
+            case .subFeature(let internalAction):
+                switch internalAction {
+                case .photoLibrary(.showPermissionPopup):
+                    return setPopUpStatus(&state, status: .photoAuthorization)
+                    
+                default:
                     return .none
                 }
-                let imgData = state.signUpEntity.imageData
-                
-                return .run { send in
-                    let result = try await userUseRepoCase.postSignUp(reqDTO, profileImage: imgData).toEntity()
-                    saveSessionId(result.sessionId)
-                    await send(.setNavigating(.trainerSignUpComplete(result)))
-                }
-                
-            case .setNavigating:
-                return .none
                 
             case .imagePicked(let imgData):
                 state.userImageData = imgData
+                return .none
+                
+            case .setNavigating:
                 return .none
             }
         }
@@ -200,6 +280,14 @@ private extension CreateProfileFeature {
             print("로그인 정보 저장 싪패")
         }
     }
+    
+    /// 팝업 상태, 표시 상태를 업데이트
+    /// status nil 입력인 경우 팝업 표시 해제
+    func setPopUpStatus(_ state: inout State, status: PopUp?) -> Effect<Action> {
+        state.view_popUp = status
+        state.view_isPopUpPresented = status != nil
+        return .none
+    }
 }
 
 extension CreateProfileFeature {
@@ -209,5 +297,36 @@ extension CreateProfileFeature {
         case traineeBasicInfoInput
         /// 트레이너 프로필 생성 완료
         case trainerSignUpComplete(PostSignUpResEntity)
+    }
+}
+
+// MARK: PopUp
+public extension CreateProfileFeature {
+    /// 본 화면에 팝업으로 표시되는 목록
+    enum PopUp: Equatable, Sendable {
+        /// 사진 접근 권한이 필요해요
+        case photoAuthorization
+        
+        var title: String {
+            switch self {
+            case .photoAuthorization:
+                return "프로필 사진 설정을 위해\n사진 접근 권한이 필요해요"
+            }
+        }
+        
+        var message: String {
+            switch self {
+            case .photoAuthorization:
+                return "‘TnT'는 프로필 사진 설정, 운동 기록 및 식단 기록 저장 등 주요 기능 제공을 위해 사진 접근 권한이 필요합니다.\n설정에서 권한을 활성화해주세요."
+            }
+        }
+        
+        var secondaryAction: Action.View {
+            return .tapPopUpSecondaryButton(popUp: self)
+        }
+        
+        var primaryAction: Action.View {
+            return .tapPopUpPrimaryButton(popUp: self)
+        }
     }
 }

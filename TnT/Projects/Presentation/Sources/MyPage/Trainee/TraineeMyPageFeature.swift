@@ -204,6 +204,7 @@ public struct TraineeMyPageFeature {
                         
                     case .logoutCompleted, .withdrawCompleted:
                         state.$hidePopupUntil.withLock { $0 = nil }
+                        state.$isConnected.withLock { $0 = false }
                         return .concatenate(
                             .send(.setPopUpStatus(nil)),
                             .send(.setNavigating(.onboardingLogin))

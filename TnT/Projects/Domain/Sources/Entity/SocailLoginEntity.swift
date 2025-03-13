@@ -8,21 +8,21 @@
 
 import Foundation
 
-public enum SocialType: String {
+public enum SocialType: String, Sendable {
     case kakao = "KAKAO"
     case apple = "APPLE"
 }
 
 /// 소셜 로그인 요청 DTO
-public struct PostSocialEntity: Equatable {
+public struct PostSocialEntity: Equatable, Sendable {
     /// 소셜 로그인 타입 (KAKAO, APPLE)
-    let socialType: SocialType
+    public let socialType: SocialType
     /// FCM 토큰
-    let fcmToken: String
+    public var fcmToken: String
     /// 소셜 액세스 토큰
-    let socialAccessToken: String?
+    public let socialAccessToken: String?
     /// 애플 ID 토큰 (Apple z로그인 시 필요)
-    let idToken: String?
+    public let idToken: String?
     
     public init(
         socialType: SocialType,

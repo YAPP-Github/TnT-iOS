@@ -32,6 +32,7 @@ public struct TrainerSignUpCompleteView: View {
             }
         }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled()
     }
     
     @ViewBuilder

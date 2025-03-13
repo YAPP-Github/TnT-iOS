@@ -25,6 +25,7 @@ public struct MakeInvitationCodeView: View {
             InvitationCode()
         }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled()
         .onAppear { send(.onAppear) }
     }
     

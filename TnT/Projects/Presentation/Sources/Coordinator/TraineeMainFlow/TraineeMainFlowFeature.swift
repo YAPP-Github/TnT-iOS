@@ -55,8 +55,8 @@ public struct TraineeMainFlowFeature {
                             return .none
                         case .addWorkoutRecordPage:
                             return .none
-                        case .addDietRecordPage:
-                            state.path.append(.addDietRecordPage(.init()))
+                        case .addDietRecordPage(let date):
+                            state.path.append(.addDietRecordPage(.init(calendarSelectedDate: date)))
                             return .none
                         case .traineeInvitationCodeInput:
                             state.path.append(.traineeInvitationCodeInput(.init(view_navigationType: .existingUser)))

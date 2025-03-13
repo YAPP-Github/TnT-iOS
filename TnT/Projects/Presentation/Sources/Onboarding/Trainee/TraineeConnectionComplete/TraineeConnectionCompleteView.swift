@@ -51,6 +51,8 @@ public struct TraineeConnectionCompleteView: View {
             }
         }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled()
+        .onAppear { send(.onAppear) }
     }
     
     // MARK: - Sections

@@ -9,6 +9,7 @@ import AuthenticationServices
 import KakaoSDKCommon
 import KakaoSDKAuth
 import KakaoSDKUser
+import FirebaseMessaging
 
 import Domain
 
@@ -170,5 +171,22 @@ extension SNSLoginManager {
             accessToken: kakaoAccessToken,
             socialRefreshToken: kakaoRefreshToken
         )
+    }
+}
+
+// MARK: FCM 토큰
+extension SNSLoginManager {
+    public func getFCMToken() async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            Messaging.messaging().token { token, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let token = token {
+                    continuation.resume(returning: token)
+                } else {
+                    continuation.resume(throwing: LoginError.fcmError)
+                }
+            }
+        }
     }
 }

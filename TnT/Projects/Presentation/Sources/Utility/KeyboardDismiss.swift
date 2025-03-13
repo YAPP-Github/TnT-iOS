@@ -39,7 +39,7 @@ struct KeyboardDismissModifier: ViewModifier {
 
 /// `View`에 `.keyboardDismissOnTap()`을 추가할 수 있도록 Extension 
 extension View {
-    func keyboardDismissOnTap(dismissOnDrag: Bool = true) -> some View {
+    func keyboardDismissOnTap(dismissOnDrag: Bool = false) -> some View {
         self.modifier(KeyboardDismissModifier(dismissOnDrag: dismissOnDrag))
     }
 }

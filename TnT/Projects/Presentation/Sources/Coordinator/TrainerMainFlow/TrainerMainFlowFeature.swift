@@ -46,8 +46,8 @@ public struct TrainerMainFlowFeature {
                         case .alarmPage:
                             state.path.append(.alarmCheck(.init(userType: .trainer)))
                             return .none
-                        case .addPTSessionPage:
-                            state.path.append(.addPTSession(.init()))
+                        case .addPTSessionPage(let date):
+                            state.path.append(.addPTSession(.init(calendarSelectedDate: date)))
                             return .none
                         case .checkTrainerInvitationCode:
                             state.path.append(.checkInvitationCode(.init()))

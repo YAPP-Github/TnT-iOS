@@ -90,5 +90,7 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>&apos;TnT&apos;가 사진 추가, 운동 및 식단 기록, 프로필 사진 업로드를 위한 기능 제공을 위해 사진 라이브러리에 접근하도록 허용합니다.</string>
 </dict>
 </plist>

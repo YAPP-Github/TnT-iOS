@@ -22,12 +22,13 @@ struct TrainerManagementView: View {
     }
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             Header()
             
             ScrollView(showsIndicators: false) {
                 if let trainees = store.traineeList, !trainees.isEmpty {
                     TraineeListView(trainees: trainees)
+                        .padding(.vertical, 12)
                 } else {
                     EmptyListView()
                         .frame(minHeight: UIScreen.main.bounds.height - 204)

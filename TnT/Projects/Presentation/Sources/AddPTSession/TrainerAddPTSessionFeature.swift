@@ -20,6 +20,8 @@ public struct TrainerAddPTSessionFeature {
     @ObservableState
     public struct State: Equatable {
         // MARK: Data related state
+        /// 캘린더에서 선택된 날짜
+        var calendarSelectedDate: Date
         /// 트레이너 회원 목록
         var traineeList: [TraineeListItemEntity]
         /// 선택된 회원
@@ -58,6 +60,7 @@ public struct TrainerAddPTSessionFeature {
         }
         
         public init(
+            calendarSelectedDate: Date = .now,
             traineeList: [TraineeListItemEntity] = [],
             trainee: TraineeListItemEntity? = nil,
             ptDate: Date? = nil,
@@ -75,6 +78,7 @@ public struct TrainerAddPTSessionFeature {
             view_popUp: PopUp? = nil,
             view_isPopUpPresented: Bool = false
         ) {
+            self.calendarSelectedDate = calendarSelectedDate
             self.traineeList = traineeList
             self.trainee = trainee
             self.ptDate = ptDate
@@ -241,13 +245,17 @@ public struct TrainerAddPTSessionFeature {
                     
                 case .tapPopUpPrimaryButton(let popUp):
                     guard popUp != nil else { return .none }
-                    return setPopUpStatus(&state, status: nil)
+                    return popUp == .sessionAdded
+                    ? .send(.setNavigating)
+                    : setPopUpStatus(&state, status: nil)
                     
                 case let .setFocus(oldFocus, newFocus):
                     state.view_focusField = newFocus
                     return .none
                     
                 case .onAppear:
+                    state.ptDate = state.calendarSelectedDate
+                    state.view_ptDateStatus = .filled
                     return .send(.api(.getTraineeList))
                 }
                 
@@ -267,18 +275,14 @@ public struct TrainerAddPTSessionFeature {
                     else { return .none }
                     
                     return .run { send in
-                        do {
-                            let _ = try await trainerRepoUseCase.postLesson(
-                                reqDTO: .init(
-                                    start: startDate,
-                                    end: endDate,
-                                    traineeId: traineeId
-                                )
+                        let _ = try await trainerRepoUseCase.postLesson(
+                            reqDTO: .init(
+                                start: startDate,
+                                end: endDate,
+                                traineeId: traineeId
                             )
-                            await send(.setPopUp(.sessionAdded))
-                        } catch {
-                            NotificationCenter.default.post(toast: .init(presentType: .text("⚠"), message: "이미 예약된 시간대입니다"))
-                        }
+                        )
+                        await send(.setPopUp(.sessionAdded))
                     }
                 }
                 

@@ -17,6 +17,7 @@ enum NetworkError: Error {
     case unauthorized(message: String?)   // 401
     case forbidden(message: String?)      // 403
     case notFound(message: String?)       // 404
+    case conflict(message: String?)       // 409
 
     // MARK: - Server Errors (500 ~ 599)
     case serverError(statusCode: Int, message: String?)
@@ -47,6 +48,8 @@ extension NetworkError: LocalizedError {
             return "[403] \(message ?? "권한이 없습니다.")"
         case .notFound(let message):
             return "[404] \(message ?? "요청한 리소스를 찾을 수 없습니다.")"
+        case .conflict(let message):
+            return "[409] \(message ?? "요청이 충돌되었습니다.")"
         case .timeout:
             return "요청 시간이 초과되었습니다."
         case .noInternet:
@@ -55,6 +58,16 @@ extension NetworkError: LocalizedError {
             return "디코딩 실패: \(message ?? "JSON 변환 오류")"
         case .unknown(let statusCode, let message):
             return "[\(statusCode ?? 0)] \(message ?? "알 수 없는 오류 발생")"
+        }
+    }
+    
+    /// UI 표시 여부
+    var isUIToastError: Bool {
+        switch self {
+        case .notFound, .conflict:
+            return true
+        default:
+            return false
         }
     }
 }

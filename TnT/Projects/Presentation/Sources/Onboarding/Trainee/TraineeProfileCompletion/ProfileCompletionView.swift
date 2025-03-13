@@ -38,6 +38,7 @@ public struct ProfileCompletionView: View {
             Spacer()
         }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled()
         .keyboardDismissOnTap()
         .bottomFixWith {
             TBottomButton(

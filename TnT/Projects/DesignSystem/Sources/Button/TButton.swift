@@ -68,8 +68,9 @@ public struct TButton: View {
                 
                 // 제목 추가
                 Text(title)
-                .typographyStyle(config.font, with: textColor)
-                .frame(maxWidth: .infinity, alignment: .center)
+                    .typographyStyle(config.font, with: textColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(minHeight: config.font.lineHeight)
                 
                 // 오른쪽 이미지 추가
                 if let rightImage = image, rightImage.type == .right || rightImage.type == .both {
@@ -79,15 +80,13 @@ public struct TButton: View {
                         .frame(width: rightImage.size, height: rightImage.size)
                 }
             }
-            .padding(.vertical, config.verticalSize)
-            .padding(.horizontal, config.horizontalSize)
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: config.radius))
-            .overlay {
+            .padding(.vertical, config.verticalSize + 0.5)
+            .padding(.horizontal, config.horizontalSize + 0.5)
+            .background(
                 RoundedRectangle(cornerRadius: config.radius)
+                    .fill(backgroundColor)
                     .stroke(borderColor, lineWidth: 1.5)
-            }
-            .contentShape(Rectangle())
+            )
         }
     }
     

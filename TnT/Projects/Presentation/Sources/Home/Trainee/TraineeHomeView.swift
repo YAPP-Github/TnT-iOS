@@ -63,7 +63,6 @@ public struct TraineeHomeView: View {
 //                ("🏋🏻‍♀️", "개인 운동", { send(.tapAddWorkoutRecordButton) }),
                 ("🥗", "식단", { send(.tapAddDietRecordButton) })
             ])
-            .padding(.top, 10)
             .padding(.bottom, 20)
             .autoSizingBottomSheet()
         }

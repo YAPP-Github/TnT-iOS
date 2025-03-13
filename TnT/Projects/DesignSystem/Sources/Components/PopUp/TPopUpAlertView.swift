@@ -35,6 +35,7 @@ public struct TPopUpAlertView: View {
                     Text(alertState.title)
                         .typographyStyle(.heading3, with: .neutral900)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 if let message = alertState.message {

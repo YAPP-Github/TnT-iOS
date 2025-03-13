@@ -56,6 +56,9 @@ public struct CreateProfileView: View {
             .disabled(!store.view_isNextButtonEnabled)
             .debounce()
         }
+        .tPopUp(isPresented: $store.view_isPopUpPresented) {
+            PopUpView()
+        }
     }
     
     @ViewBuilder
@@ -73,7 +76,7 @@ public struct CreateProfileView: View {
                 .padding(.horizontal, 20)
             }
             
-            TInfoTitleHeader(title: "이름이 어떻게 되세요?")
+            TInfoTitleHeader(title: "닉네임이 어떻게 되세요?")
         }
         .padding(.vertical, 12)
     }
@@ -98,34 +101,34 @@ public struct CreateProfileView: View {
         }
         .frame(width: 132, height: 132)
         .overlay(alignment: .bottomTrailing) {
-            PhotosPicker(
-                selection: $store.view_photoPickerItem,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
+            PhotoPickerView(store: store.scope(
+                state: \.photoLibraryState,
+                action: \.subFeature.photoLibrary
+            ), selectedItem: $store.view_photoPickerItem) {
                 ZStack {
                     Circle()
                         .fill(Color.neutral900)
-                        .frame(width: 28, height: 28)
+                        
                     Image(.icnWriteWhite)
                         .resizable()
                         .frame(width: 16, height: 16)
                 }
             }
+            .frame(width: 28, height: 28)
         }
     }
     
     @ViewBuilder
     private func TextFieldSection() -> some View {
         TTextField(
-            placeholder: "이름을 입력해주세요",
+            placeholder: "닉네임을 입력해주세요",
             text: $store.userName,
             textFieldStatus: $store.view_textFieldStatus
         )
         .withSectionLayout(
             header: .init(
                 isRequired: true,
-                title: "이름",
+                title: "닉네임",
                 limitCount: store.view_nameMaxLength ?? 15,
                 textCount: store.userName.count
             ),
@@ -137,5 +140,25 @@ public struct CreateProfileView: View {
             )
         )
         .padding(.horizontal, 20)
+    }
+    
+    @ViewBuilder
+    private func PopUpView() -> some View {
+        if let popUp = store.view_popUp {
+            let buttons: [TPopupAlertState.ButtonState] = [
+                .init(title: "취소", style: .secondary, action: .init(action: { send(popUp.secondaryAction) })),
+                .init(title: "확인", style: .primary, action: .init(action: { send(popUp.primaryAction) }))
+            ]
+            
+            TPopUpAlertView(
+                alertState: .init(
+                    title: popUp.title,
+                    message: popUp.message,
+                    buttons: buttons
+                )
+            )
+        } else {
+            EmptyView()
+        }
     }
 }

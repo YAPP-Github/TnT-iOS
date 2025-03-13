@@ -12,7 +12,7 @@ struct UserPolicy {
     
     /// 사용자 이름 검증 - 한글/영어/공백만 허용 (특수문자 불가)
     static let userNameInput: PolicyInputInfo = .init(
-        textValidation: { TextValidator.isValidInput($0, maxLength: maxNameLength, regexPattern: "^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z ]*$") },
+        textValidation: { TextValidator.isValidInput($0, maxLength: maxNameLength, regexPattern: "^(?!\\s*$)[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z ]*$") },
         isRequired: true
     )
     

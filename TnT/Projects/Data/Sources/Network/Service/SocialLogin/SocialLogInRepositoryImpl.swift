@@ -16,6 +16,7 @@ public enum LoginError: Error {
     case networkFailure
     case kakaoError
     case appleError
+    case fcmError
     case unknown(message: String)
 }
 
@@ -33,5 +34,9 @@ public struct SocialLogInRepositoryImpl: SocialLoginRepository {
     
     public func kakaoLogin() async -> KakaoLoginInfo? {
         return await loginManager.kakaoLogin()
+    }
+    
+    public func getFCMToken() async throws -> String {
+        return try await loginManager.getFCMToken()
     }
 }

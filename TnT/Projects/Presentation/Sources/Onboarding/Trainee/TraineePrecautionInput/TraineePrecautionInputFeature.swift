@@ -62,15 +62,16 @@ public struct TraineePrecautionInputFeature {
     
     @Dependency(\.userUseCase) private var userUseCase: UserUseCase
     @Dependency(\.userUseRepoCase) private var userUseRepoCase: UserRepository
+    @Dependency(\.socialLogInUseCase) private var socialLoginUseCase: SocialLoginUseCase
     @Dependency(\.keyChainManager) var keyChainManager
     
     public enum Action: Sendable, ViewAction {
         /// 뷰에서 발생한 액션을 처리합니다.
         case view(View)
+        /// api 액션처리
+        case api(APIAction)
         /// 네비게이션 여부 설정
         case setNavigating(PostSignUpResEntity)
-        /// 회원가입 POST
-        case postSignUp
         
         @CasePathable
         public enum View: Sendable, BindableAction {
@@ -80,6 +81,14 @@ public struct TraineePrecautionInputFeature {
             case tapNextButton
             /// 포커스 상태 변경
             case setFocus(Bool)
+        }
+        
+        @CasePathable
+        public enum APIAction: Sendable {
+            /// FCM 토큰 get
+            case getFCMToken
+            /// 회원가입 POST
+            case postSignUp(fcmToken: String)
         }
     }
     
@@ -104,21 +113,36 @@ public struct TraineePrecautionInputFeature {
                     
                 case .tapNextButton:
                     state.$signUpEntity.withLock { $0.cautionNote = state.precaution }
-                    return .send(.postSignUp)
+                    return .send(.api(.getFCMToken))
+                }
+                
+            case .api(let action):
+                switch action {
+                case .getFCMToken:
+                    return .run { send in
+                        if let fcmToken = try? await socialLoginUseCase.getFCMToken() {
+                            await send(.api(.postSignUp(fcmToken: fcmToken)))
+                        } else {
+                            let fcmToken: String? = try? keyChainManager.read(for: .apns)
+                            await send(.api(.postSignUp(fcmToken: fcmToken ?? "")))
+                        }
+                    }
+                    
+                case .postSignUp(let fcmToken):
+                    state.$signUpEntity.withLock { $0.fcmToken = fcmToken }
+                    
+                    guard let reqDTO = state.signUpEntity.toDTO() else {
+                        return .none
+                    }
+                    let imgData = state.signUpEntity.imageData
+                    
+                    return .run { send in
+                        let result = try await userUseRepoCase.postSignUp(reqDTO, profileImage: imgData).toEntity()
+                        saveSessionId(result.sessionId)
+                        await send(.setNavigating(result))
+                    }
                 }
 
-            case .postSignUp:
-                guard let reqDTO = state.signUpEntity.toDTO() else {
-                    return .none
-                }
-                let imgData = state.signUpEntity.imageData
-                
-                return .run { send in
-                    let result = try await userUseRepoCase.postSignUp(reqDTO, profileImage: imgData).toEntity()
-                    saveSessionId(result.sessionId)
-                    await send(.setNavigating(result))
-                }
-                
             case .setNavigating:
                 return .none
             }

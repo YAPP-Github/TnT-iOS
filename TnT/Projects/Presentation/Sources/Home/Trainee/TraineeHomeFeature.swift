@@ -76,8 +76,9 @@ public struct TraineeHomeFeature {
         }
     }
     
+    @Dependency(\.userUseRepoCase) private var userUseRepoCase: UserRepository
     @Dependency(\.traineeUseCase) private var traineeUseCase: TraineeUseCase
-    @Dependency(\.traineeRepoUseCase) private var traineeRepoUseCase
+    @Dependency(\.traineeRepoUseCase) private var traineeRepoUseCase: TraineeRepository
     
     public enum Action: Equatable, Sendable, ViewAction {
         /// 뷰에서 발생한 액션을 처리합니다.
@@ -90,6 +91,8 @@ public struct TraineeHomeFeature {
         case setContent(session: WorkoutListItemEntity?, records: [RecordListItemEntity])
         /// 팝업 표시 처리
         case showPopUp
+        /// 화면이 표시될 때 - 세션 체크 이후
+        case onAppearAfterSessionCheck(isConnected: Bool)
         /// 네비게이션 여부 설정
         case setNavigating(RoutingScreen)
         
@@ -181,7 +184,7 @@ public struct TraineeHomeFeature {
                     
                 case .tapAddDietRecordButton:
                     state.view_isBottomSheetPresented = false
-                    return .send(.setNavigating(.addDietRecordPage))
+                    return .send(.setNavigating(.addDietRecordPage(selectedDate: state.selectedDate)))
                     
                 case .tapPopUpNextButton:
                     if state.isHideUntilSelected {
@@ -206,11 +209,11 @@ public struct TraineeHomeFeature {
                     return .send(.setNavigating(.traineeInvitationCodeInput))
                     
                 case .onAppear:
-                    return .concatenate(
-                        .send(.showPopUp),
-                        currentPageUpdated(state: &state),
-                        .send(.api(.getActiveDateDetail(date: state.selectedDate)))
-                    )
+                    return .run { send in
+                        if let result = try? await userUseRepoCase.getSessionCheck() {
+                            await send(.onAppearAfterSessionCheck(isConnected: result.isConnected))
+                        }
+                    }
                 }
                 
             case .api(let action):
@@ -257,6 +260,14 @@ public struct TraineeHomeFeature {
                 state.view_isPopUpPresented = !hidePopUp
                 return .none
                 
+            case .onAppearAfterSessionCheck(let isConnected):
+                state.$isConnected.withLock { $0 = isConnected }
+                return .concatenate(
+                    .send(.showPopUp),
+                    currentPageUpdated(state: &state),
+                    .send(.api(.getActiveDateDetail(date: state.selectedDate)))
+                )
+                
             case .setNavigating:
                 return .none
             }
@@ -272,8 +283,8 @@ extension TraineeHomeFeature {
         let newMonth = newPage.toString(format: .yyyyMM)
 
         // 이전에 불러온 년/달과 같은 경우 API 호출 생략
-        guard !state.loadedMonths.contains(newMonth) else { return .none }
-            state.loadedMonths.insert(newMonth)
+//        guard !state.loadedMonths.contains(newMonth) else { return .none }
+//            state.loadedMonths.insert(newMonth)
 
 
         // API 호출할 범위 설정
@@ -303,7 +314,7 @@ extension TraineeHomeFeature {
         /// 운동 기록 추가 페이지
         case addWorkoutRecordPage
         /// 식단 기록 추가 페이지
-        case addDietRecordPage
+        case addDietRecordPage(selectedDate: Date)
         /// 초대코드 입력 페이지
         case traineeInvitationCodeInput
     }

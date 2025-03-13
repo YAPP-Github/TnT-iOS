@@ -74,6 +74,7 @@ public struct TrainerHomeFeature {
         }
     }
     
+    @Dependency(\.userUseRepoCase) private var userUseRepoCase: UserRepository
     @Dependency(\.traineeUseCase) private var traineeUseCase: TraineeUseCase
     @Dependency(\.trainerRepoUseCase) private var trainerRepoUseCase: TrainerRepository
     
@@ -101,6 +102,8 @@ public struct TrainerHomeFeature {
             case tapPopUpConnectButton
             /// 화면이 표시될 때
             case onAppear
+            /// 화면이 표시될 때 - 세션 체크 이후
+            case onAppearAfterSessionCheck(isConnected: Bool)
             /// events 타입에 맞춰서 달력 스케줄 캐수 표시 데이터 계산
             case fetchMonthlyLessons(year: Int, month: Int)
             /// 달력 스케줄 캐수 표시 데이터 업데이트
@@ -150,13 +153,13 @@ public struct TrainerHomeFeature {
                     return .none
                     
                 case .tapAddSessionButton:
-                    return .run { send in
+                    return .run { [state] send in
                         let result: GetActiveTraineesListResDTO = try await trainerRepoUseCase.getActiveTraineesList()
                         
                         if result.trainees.isEmpty {
                             return await send(.view(.popUpOfCheckTrainee))
                         } else {
-                            return await send(.setNavigating(.addPTSessionPage))
+                            return await send(.setNavigating(.addPTSessionPage(selectedDate: state.selectedDate)))
                         }
                     }
                     
@@ -188,6 +191,14 @@ public struct TrainerHomeFeature {
                     return .send(.setNavigating(.checkTrainerInvitationCode))
                     
                 case .onAppear:
+                    return .run { send in
+                        if let result = try? await userUseRepoCase.getSessionCheck() {
+                            await send(.view(.onAppearAfterSessionCheck(isConnected: result.isConnected)))
+                        }
+                    }
+                    
+                case .onAppearAfterSessionCheck(let isConnected):
+                    state.$isConnected.withLock { $0 = isConnected }
                     let year: Int = Calendar.current.component(.year, from: state.selectedDate)
                     let month: Int = Calendar.current.component(.month, from: state.selectedDate)
                     
@@ -195,13 +206,6 @@ public struct TrainerHomeFeature {
                     let hidePopUp = state.isConnected || hideUntil > Date()
                     state.view_isPopUpPresented = !hidePopUp
                     state.popUpFlag = !hidePopUp
-                    
-//                    if let hideUntil = state.hidePopupUntil, hideUntil > Date() {
-//                        state.view_isPopUpPresented = false
-//                    } else {
-//                        state.popUpFlag = true
-//                        state.view_isPopUpPresented = true
-//                    }
                     
                     return .concatenate(
                         .send(.view(.fetchMonthlyLessons(year: month == 1 ? year-1 : year, month: month == 1 ? 12 : month-1))),
@@ -284,7 +288,7 @@ extension TrainerHomeFeature {
         /// 알림 페이지
         case alarmPage
         /// PT 일정 추가페이지
-        case addPTSessionPage
+        case addPTSessionPage(selectedDate: Date)
         /// 초대 코드 발급페이지
         case trainerMakeInvitationCodePage
         /// 초대 코드 확인 페잊

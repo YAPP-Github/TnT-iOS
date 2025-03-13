@@ -42,6 +42,7 @@ public struct TrainerMainTabView: View {
             
             BottomTabBar()
         }
+        .navigationPopGestureDisabled()
         .ignoresSafeArea(.all, edges: .bottom)
     }
     
@@ -50,7 +51,6 @@ public struct TrainerMainTabView: View {
     private func BottomTabBar() -> some View {
         HStack(alignment: .top) {
             ForEach(TrainerTabInfo.allCases, id: \.hashValue) { tab in
-                Spacer()
                 TMainTabButton(
                     unselectedIcon: tab.emptyIcn,
                     selectedIcon: tab.filledIcn,
@@ -58,8 +58,7 @@ public struct TrainerMainTabView: View {
                     isSelected: store.state.tabInfo == tab,
                     action: { send(.selectTab(tab)) }
                 )
-                .frame(maxHeight: .infinity, alignment: .top)
-                Spacer()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         }
         .frame(height: 54 + .safeAreaBottom)

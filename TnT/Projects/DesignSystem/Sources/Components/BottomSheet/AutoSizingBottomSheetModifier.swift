@@ -22,14 +22,15 @@ struct AutoSizingBottomSheetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .padding(.top, 24)
             .background(
                 GeometryReader { proxy in
                     Color.clear
                         .onAppear {
-                            contentHeight = proxy.size.height + 10
+                            contentHeight = proxy.size.height
                         }
                         .onChange(of: proxy.size.height) { _, newHeight in
-                            contentHeight = newHeight + 10
+                            contentHeight = newHeight
                         }
                 }
             )

@@ -15,6 +15,8 @@ import Domain
 public struct ConnectionCompleteFeature {
     @ObservableState
     public struct State: Equatable {
+        /// 연결 여부
+        @Shared(.appStorage(AppStorage.isConnected)) var isConnected: Bool = true
         var traineeId: Int64?
         var trainerId: Int64?
         var connectionInfo: ConnectionInfoEntity?
@@ -66,6 +68,7 @@ public struct ConnectionCompleteFeature {
                     return .send(.setNavigating(profile))
                     
                 case .onAppear:
+                    state.$isConnected.withLock { $0 = true }
                     return .send(.api(.getConnectedTraineeInfo))
                 }
                 

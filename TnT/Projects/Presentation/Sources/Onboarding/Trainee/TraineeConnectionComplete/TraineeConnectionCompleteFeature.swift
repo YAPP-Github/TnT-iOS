@@ -18,6 +18,8 @@ public struct TraineeConnectionCompleteFeature {
     @ObservableState
     public struct State: Equatable {
         // MARK: Data related state
+        /// 연결 여부
+        @Shared(.appStorage(AppStorage.isConnected)) var isConnected: Bool = true
         /// 현재 사용자 유저 타입 (트레이너/트레이니)
         var userType: UserType
         /// 트레이니 사용자 이름
@@ -78,6 +80,8 @@ public struct TraineeConnectionCompleteFeature {
             case binding(BindingAction<State>)
             /// "다음으로" 버튼이 눌렸을 때
             case tapNextButton
+            /// 화면이 표시되었을 때
+            case onAppear
         }
     }
     
@@ -95,6 +99,10 @@ public struct TraineeConnectionCompleteFeature {
                     
                 case .tapNextButton:
                     return .send(.setNavigating)
+                
+                case .onAppear:
+                    state.$isConnected.withLock { $0 = true }
+                    return .none
                 }
 
             case .setNavigating:

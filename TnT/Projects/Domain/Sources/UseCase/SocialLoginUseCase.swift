@@ -23,4 +23,8 @@ public struct SocialLoginUseCase {
     public func kakaoLogin() async -> KakaoLoginInfo? {
         return await socialLoginRepository.kakaoLogin()
     }
+    
+    public func getFCMToken() async throws -> String {
+        return try await socialLoginRepository.getFCMToken()
+    }
 }

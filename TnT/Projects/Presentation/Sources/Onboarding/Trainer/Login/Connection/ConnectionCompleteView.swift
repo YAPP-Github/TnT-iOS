@@ -55,6 +55,7 @@ public struct ConnectionCompleteView: View {
         }
         .onAppear { send(.onAppear) }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled()
     }
     
     @ViewBuilder

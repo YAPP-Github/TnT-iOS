@@ -8,6 +8,8 @@
 
 import Foundation
 
+import Domain
+
 struct ResponseValidatorInterceptor: Interceptor {
     let priority: InterceptorPriority = .normal
 
@@ -17,11 +19,18 @@ struct ResponseValidatorInterceptor: Interceptor {
         }
 
         let statusCode: Int = httpResponse.statusCode
-        let responseBody: String = String(data: data, encoding: .utf8) ?? "No Response"
-
         switch statusCode {
         case 200..<300:
             return
+        default:
+            try throwError(with: data, statusCode: statusCode)
+        }
+    }
+    
+    private func throwError(with data: Data, statusCode: Int) throws {
+        let responseBody: String = try JSONDecoder().decode(ErrorResponse.self, from: data).message
+        
+        switch statusCode {
         case 400:
             throw NetworkError.badRequest(message: responseBody)
             
@@ -33,6 +42,9 @@ struct ResponseValidatorInterceptor: Interceptor {
             
         case 404:
             throw NetworkError.notFound(message: responseBody)
+        
+        case 409:
+            throw NetworkError.conflict(message: responseBody)
             
         case 405..<500:
             throw NetworkError.clientError(statusCode: statusCode, message: responseBody)

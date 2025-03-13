@@ -49,13 +49,13 @@ public struct Typography {
         ///   - size: 폰트 크기
         ///   - lineHeightMultiplier: 줄 높이 배율 (CGFloat)
         ///   - letterSpacing: 자간 (CGFloat)
-        init(_ weight: Pretendard.Weight, size: CGFloat, lineHeightMultiplier: CGFloat, letterSpacing: CGFloat) {
+        init(_ weight: Pretendard.Weight, size: CGFloat, lineHeightMultiplier: CGFloat, letterSpacingRate: CGFloat) {
             self.font = weight.fontConvertible.swiftUIFont(size: size)
             self.uiFont = weight.fontConvertible.font(size: size)
             self.size = size
             self.lineHeight = size * lineHeightMultiplier
             self.lineSpacing = (size * lineHeightMultiplier) - size
-            self.letterSpacing = letterSpacing
+            self.letterSpacing = size * letterSpacingRate
         }
     }
 }
@@ -63,26 +63,26 @@ public struct Typography {
 /// 앱에서 사용할 기본적인 폰트 스타일을 정의합니다.
 public extension Typography.FontStyle {
     // Heading Styles
-    static let heading1: Typography.FontStyle = Typography.FontStyle(.bold, size: 28, lineHeightMultiplier: 1.4, letterSpacing: -0.02)
-    static let heading2: Typography.FontStyle = Typography.FontStyle(.bold, size: 24, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let heading3: Typography.FontStyle = Typography.FontStyle(.bold, size: 20, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let heading4: Typography.FontStyle = Typography.FontStyle(.bold, size: 18, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
+    static let heading1: Typography.FontStyle = Typography.FontStyle(.bold, size: 28, lineHeightMultiplier: 1.4, letterSpacingRate: -0.02)
+    static let heading2: Typography.FontStyle = Typography.FontStyle(.bold, size: 24, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let heading3: Typography.FontStyle = Typography.FontStyle(.bold, size: 20, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let heading4: Typography.FontStyle = Typography.FontStyle(.bold, size: 18, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
     
     // Body Styles
-    static let body1Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 16, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let body1Semibold: Typography.FontStyle = Typography.FontStyle(.semibold, size: 16, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let body1Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 16, lineHeightMultiplier: 1.6, letterSpacing: -0.02)
-    static let body2Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 15, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let body2Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 15, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
+    static let body1Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 16, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let body1Semibold: Typography.FontStyle = Typography.FontStyle(.semibold, size: 16, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let body1Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 16, lineHeightMultiplier: 1.6, letterSpacingRate: -0.02)
+    static let body2Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 15, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let body2Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 15, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
     
     // Label Styles
-    static let label1Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 13, lineHeightMultiplier: 1.3, letterSpacing: -0.02)
-    static let label1Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 13, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let label2Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 12, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
-    static let label2Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 12, lineHeightMultiplier: 1.5, letterSpacing: -0.02)
+    static let label1Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 13, lineHeightMultiplier: 1.3, letterSpacingRate: -0.02)
+    static let label1Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 13, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let label2Bold: Typography.FontStyle = Typography.FontStyle(.bold, size: 12, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
+    static let label2Medium: Typography.FontStyle = Typography.FontStyle(.medium, size: 12, lineHeightMultiplier: 1.5, letterSpacingRate: -0.02)
     
     // Caption Styles
-    static let caption1: Typography.FontStyle = Typography.FontStyle(.medium, size: 11, lineHeightMultiplier: 1.3, letterSpacing: -0.02)
+    static let caption1: Typography.FontStyle = Typography.FontStyle(.medium, size: 11, lineHeightMultiplier: 1.3, letterSpacingRate: -0.02)
 }
 
 /// 텍스트에 Typography 스타일과 색상을 적용하는 ViewModifier입니다.
@@ -91,13 +91,31 @@ public extension Typography.FontStyle {
 struct TypographyModifier: ViewModifier {
     let style: Typography.FontStyle
     let color: Color
-
+    
     func body(content: Content) -> some View {
         content
             .font(style.font)
             .lineSpacing(style.lineSpacing)
             .kerning(style.letterSpacing)
             .foregroundStyle(color)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            if proxy.size.height < style.lineHeight {
+                                applySingleLineFix(content: content)
+                            }
+                        }
+                }
+            )
+    }
+    
+    /// 한 줄짜리 텍스트에 대한 lineHeight 적용
+    @ViewBuilder
+    private func applySingleLineFix(content: Content) -> some View {
+        content
+            .frame(height: style.lineHeight)
+            .baselineOffset((style.lineHeight - style.size) / 2)
     }
 }
 

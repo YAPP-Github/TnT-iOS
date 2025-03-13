@@ -48,6 +48,8 @@ public final class NetworkService {
             switch error {
             case .unauthorized:
                 NotificationCenter.default.postSessionExpired()
+            case .notFound(let message), .conflict(let message):
+                NotificationCenter.default.post(toast: .init(presentType: .text("⚠"), message: message ?? ""))
             default:
                 NotificationCenter.default.post(toast: .init(presentType: .text("⚠"), message: "서버 요청에 실패했어요"))
             }

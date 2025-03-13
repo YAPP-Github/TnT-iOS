@@ -12,3 +12,7 @@ import Foundation
 public struct EmptyResponse: Decodable {
     public init() {}
 }
+
+public struct ErrorResponse: Decodable {
+    public let message: String
+}

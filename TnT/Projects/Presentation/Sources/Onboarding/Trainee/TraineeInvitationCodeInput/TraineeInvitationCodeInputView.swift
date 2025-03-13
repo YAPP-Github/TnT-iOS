@@ -38,6 +38,7 @@ public struct TraineeInvitationCodeInputView: View {
             Spacer()
         }
         .navigationBarBackButtonHidden()
+        .navigationPopGestureDisabled(store.view_navigationType == .newUser)
         .keyboardDismissOnTap()
         .bottomFixWith {
             TBottomButton(

@@ -44,14 +44,12 @@ public struct LoginFeature {
     public enum Action: ViewAction {
         /// 뷰에서 일어나는 액션을 처리합니다.(카카오,애플로그인 실행)
         case view(View)
+        /// api 액션처리
+        case api(APIAction)
         /// 하위 화면에서 일어나는 액션을 처리합니다
         case subFeature(SubFeatureAction)
         /// 네비게이션 여부 설정
         case setNavigating(RoutingScreen)
-        /// 소셜 로그인 post 요청
-        case postSocialLogin(entity: PostSocialEntity)
-        /// 소셜 로그인 실패
-        case socialLoginFail
         /// signUpEntity를 소셜로그인 정보로 업데이트
         case updateSignUpEntityWithSocialInfo(res: PostSocialLoginResDTO)
         /// 약관 동의 화면 표시
@@ -61,6 +59,14 @@ public struct LoginFeature {
         public enum View: Equatable {
             case tappedAppleLogin
             case tappedKakaoLogin
+        }
+        
+        @CasePathable
+        public enum APIAction: Sendable {
+            /// FCM 토큰 받아 주입
+            case insertFCMToken(entity: PostSocialEntity)
+            /// 소셜 로그인 post 요청
+            case postSocialLogin(entity: PostSocialEntity)
         }
         
         @CasePathable
@@ -90,7 +96,7 @@ public struct LoginFeature {
                             idToken: result.identityToken
                         )
                         
-                        await send(.postSocialLogin(entity: entity))
+                        await send(.api(.insertFCMToken(entity: entity)))
                     }
                     
                 case .tappedKakaoLogin:
@@ -106,7 +112,42 @@ public struct LoginFeature {
                             idToken: ""
                         )
                         
-                        await send(.postSocialLogin(entity: entity))
+                        await send(.api(.insertFCMToken(entity: entity)))
+                    }
+                }
+                
+            case .api(let action):
+                switch action {
+                case .insertFCMToken(let entity):
+                    return .run { send in
+                        var mutatedEntity = entity
+                        if let fcmToken = try? await socialLoginUseCase.getFCMToken() {
+                            mutatedEntity.fcmToken = fcmToken
+                            await send(.api(.postSocialLogin(entity: mutatedEntity)))
+                        } else {
+                            let fcmToken: String? = try? keyChainManager.read(for: .apns)
+                            mutatedEntity.fcmToken = fcmToken ?? ""
+                            await send(.api(.postSocialLogin(entity: mutatedEntity)))
+                        }
+                    }
+                    
+                case .postSocialLogin(let entity):
+                    let post: PostSocialLoginReqDTO = entity.toDTO()
+                    
+                    return .run { send in
+                        let result: PostSocialLoginResDTO = try await userUseCaseRepo.postSocialLogin(post)
+                        saveSessionId(result.sessionId)
+                        
+                        switch result.memberType {
+                        case .trainer:
+                            await send(.setNavigating(.trainerHome))
+                        case .trainee:
+                            await send(.setNavigating(.traineeHome))
+                        case .unregistered:
+                            await send(.updateSignUpEntityWithSocialInfo(res: result))
+                        case .unknown:
+                            print("unknown 타입이에요 토스트해줏요")
+                        }
                     }
                 }
                 
@@ -122,33 +163,6 @@ public struct LoginFeature {
                 return .none
                 
             case .subFeature:
-                return .none
-                
-            case .postSocialLogin(let entity):
-                let post: PostSocialLoginReqDTO = entity.toDTO()
-                
-                return .run { send in
-                    do {
-                        let result: PostSocialLoginResDTO = try await userUseCaseRepo.postSocialLogin(post)
-                        saveSessionId(result.sessionId)
-                        
-                        switch result.memberType {
-                        case .trainer:
-                            await send(.setNavigating(.trainerHome))
-                        case .trainee:
-                            await send(.setNavigating(.traineeHome))
-                        case .unregistered:
-                            await send(.updateSignUpEntityWithSocialInfo(res: result))
-                        case .unknown:
-                            print("unknown 타입이에요 토스트해줏요")
-                        }
-                    } catch {
-                        await send(.socialLoginFail)
-                    }
-                }
-                
-            case .socialLoginFail:
-                print("네트워크 에러 발생")
                 return .none
                 
             case .updateSignUpEntityWithSocialInfo(let res):

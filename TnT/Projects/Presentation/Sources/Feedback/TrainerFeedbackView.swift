@@ -27,6 +27,7 @@ struct TrainerFeedbackView: View {
                     .frame(minHeight: UIScreen.main.bounds.height - 204)
             }
         }
+        .background(Color.neutral100)
         .navigationBarBackButtonHidden()
     }
     

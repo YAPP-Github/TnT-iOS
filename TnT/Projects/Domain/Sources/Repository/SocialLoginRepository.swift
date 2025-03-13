@@ -14,4 +14,6 @@ public protocol SocialLoginRepository {
     func appleLogin() async -> AppleLoginInfo?
     /// 카카오 로그인을 수행합니다
     func kakaoLogin() async -> KakaoLoginInfo?
+    /// FCM 토큰을 가져옵니다
+    func getFCMToken() async throws -> String
 }

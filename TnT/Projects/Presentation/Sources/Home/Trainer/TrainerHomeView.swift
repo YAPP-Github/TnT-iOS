@@ -247,7 +247,6 @@ extension TrainerHomeView {
                         Image(.icnClock)
                         Text("\(session.startTime) ~ \(session.endTime)")
                             .typographyStyle(.label2Medium, with: .neutral500)
-                            .frame(maxWidth: .infinity)
                     }
                     
                     HStack(spacing: 6) {

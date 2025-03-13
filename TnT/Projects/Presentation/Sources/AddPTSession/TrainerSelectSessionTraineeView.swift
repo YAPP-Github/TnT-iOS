@@ -37,7 +37,6 @@ public struct TrainerSelectSessionTraineeView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Header()
-                .padding(.top, 30)
             
             if contentHeight >= 708 {
                 ScrollView {
@@ -49,6 +48,7 @@ public struct TrainerSelectSessionTraineeView: View {
             
             Spacer(minLength: 0)
         }
+        .padding(.top, 24)
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(contentHeight == maxHeight ? .visible : .hidden)
     }
