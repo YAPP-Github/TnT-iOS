@@ -23,7 +23,6 @@ KingFisher
 FirebaseMessaging
 ComposableArchitecture
 FSCalendar
-****
 ```
 
 ---
@@ -36,36 +35,37 @@ FSCalendar
 ### Architecture (Clean Architecture + TCA)
 
 <img src="https://raw.githubusercontent.com/YAPP-Github/TnT-iOS/refs/heads/TNT-294-ReadMe/TnT/Photos/Architecture.png">
+---
   
 ### Layer 구현 내용
 **Application Layer**
 - AppDelegate, SceneDelegate 위치  
 - 애플리케이션의 진입점으로써 실행과 관련된 작업을 처리함 
 
-**Data Layer**
+`Data Layer`
 - 외부 데이터 소스와의 상호작용을 담당하는 레이어  
 - Network / Local(KeyChain) 로 나누어 외부 데이터를 관리함
 - DTO로 받아오며 Mapper를 통해 앱 내부에 맞는 데이터로 변환하여 사용  
 - Moya의 로직을 URLSession에 점목하여 Interceptor와 Logger를 구현함
-
-**Domain Layer**
+  
+`Domain Layer`
 - 비즈니스 로직을 처리하는 애플리케이션의 핵심 레이어로, 앱의 도메인 규칙을 정의함
 - Entity: 비즈니스 도메인의 핵심 모델이며, UI나 외부 데이터 소스와 독립적
 - UseCase: 특정 비즈니스 규칙을 수행하는 인터페이스로, Repository를 통해 데이터를 가져오거나 가공하여 Presentation Layer에서 사용할 수 있도록 구현함
 - Repository Protocol: 데이터 접근 방식(Network, Local Storage 등)을 추상화하여, Data Layer의 구현과 분리된 형태로 유지시킴
   
-**Presentation Layer**
+`Presentation Layer`
 - UI와 관련된 모든 요소를 담당하는 레이어로, **SwiftUI + TCA** 으로 구성됨
 - **View (SwiftUI)**: Store에서 제공하는 상태를 기반으로 UI를 렌더링하며, 유저 인터랙션을 Action으로 변환하여 Store에 전달함
 - **Feature (Reducer + State + Action)**: 각 화면을 하나의 Feature로 구성하고, Reducer에서 State와 Action을 관리하며 비즈니스 로직을 UseCase에 위임함
 - **Navigation**: TCA의 Reducer 기반 네비게이션을 활용하여 화면 전환을 관리하며, 네비게이션 상태(Path, Stack)를 State로 유지함
-
-**DIContainer**
+  
+`DIContainer`
 - DIContainer는 앱 전반에서 **객체의 생성과 의존성 주입을 관리함**
 - 각 레이어의 객체들이 직접 인스턴스를 생성하는 대신, DIContainer를 통해 필요한 의존성을 주입받도록 설계하여 **클린 아키텍처의 원칙(의존성 역전 원칙, DIP)** 을 따를 수 있도록함
 - Repository, UseCase, Reducer(Store) 등과 같은 핵심 객체들을 DIContainer에서 생성하고 관리하며, Environment 또는 Resolver를 통해 필요한 객체를 주입받아 사용
-
-**Design System**
+  
+`Design System`
 - 디자인과 관련된 파일, 소스들이 모여있는 모듈  
 - 비즈니스 로직과 연관 없이 디자인만 정의되어 있는 모듈
 
