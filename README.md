@@ -35,8 +35,8 @@ FSCalendar
 ### Architecture (Clean Architecture + TCA)
 
 <img src="https://raw.githubusercontent.com/YAPP-Github/TnT-iOS/refs/heads/TNT-294-ReadMe/TnT/Photos/Architecture.png">
----
-  
+
+-------
 ### Layer 구현 내용
 **Application Layer**
 - AppDelegate, SceneDelegate 위치  
