@@ -28,3 +28,18 @@ public extension GetMyPageInfoResDTO {
         )
     }
 }
+
+public extension EditUserInfoEntity {
+    func toDTO() -> PutMyInfoReqDTO {
+        return .init(
+            removeImage: self.removeImage,
+            memberType: self.memberType.englishName,
+            name: self.name,
+            birthday: self.birthday?.toString(format: .yyyyMMdd),
+            height: self.height,
+            weight: self.weight,
+            cautionNote: self.cautionNote,
+            goalContents: self.goalContents
+        )
+    }
+}
