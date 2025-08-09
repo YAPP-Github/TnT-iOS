@@ -24,6 +24,8 @@ public enum UserTargetType {
     case postWithdrawal
     /// 마이페이지 정보 요청
     case getMyPageInfo
+    /// 회원 정보 수정 요청
+    case putMyInfo(reqDTO: PutMyInfoReqDTO, imgData: Data?)
 }
 
 extension UserTargetType: TargetType {
@@ -48,7 +50,7 @@ extension UserTargetType: TargetType {
         case .postWithdrawal:
             return "/members/withdraw"
             
-        case .getMyPageInfo:
+        case .getMyPageInfo, .putMyInfo:
             return "/members"
         }
     }
@@ -60,6 +62,9 @@ extension UserTargetType: TargetType {
             
         case .postSocialLogin, .postSignUp, .postLogout, .postWithdrawal:
             return .post
+        
+        case .putMyInfo:
+            return .patch
         }
     }
     
@@ -72,14 +77,10 @@ extension UserTargetType: TargetType {
             return .requestJSONEncodable(encodable: reqDto)
             
         case let .postSignUp(reqDto, imgData):
-            let jsons: [MultipartJSON] = [.init(jsonName: "request", json: reqDto)]
+            return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
             
-            // 프로필 이미지가 있을 경우 멀티파트 업로드 처리
-            let files: [MultipartFile] = imgData.map {
-                [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
-            } ?? []
-            
-            return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
+        case let .putMyInfo(reqDto, imgData):
+            return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
         }
     }
     
@@ -96,6 +97,9 @@ extension UserTargetType: TargetType {
                 "Content-Type": "multipart/form-data",
                 "Authorization": "SESSION-ID 1111"
             ]
+            
+        case .putMyInfo:
+            return ["Content-Type": "multipart/form-data"]
         }
     }
     
@@ -117,5 +121,14 @@ extension UserTargetType: TargetType {
                 RetryInterceptor(maxRetryCount: 2)
             ]
         }
+    }
+    
+    /// 프로필 멀티파트 업로드 (DTO + 선택 이미지)
+    private func makeProfileMultipartUpload<T: Encodable>(dto: T, imageData: Data?) -> RequestTask {
+        let jsons: [MultipartJSON] = [.init(jsonName: "request", json: dto)]
+        let files: [MultipartFile] = imageData.map {
+            [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
+        } ?? []
+        return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
     }
 }

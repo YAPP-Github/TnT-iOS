@@ -95,3 +95,37 @@ public struct PostSignUpReqDTO: Encodable {
         self.goalContents = goalContents
     }
 }
+
+/// 내 정보 수정 요청 DTO
+public struct PutMyInfoReqDTO: Encodable {
+    
+    public init(
+        removeImage: Bool,
+        memberType: String,
+        name: String,
+        birthday: String? = nil,
+        height: Double? = nil,
+        weight: Double? = nil,
+        cautionNote: String? = nil,
+        goalContents: [String]?
+    ) {
+        self.removeImage = removeImage
+        self.memberType = memberType
+        self.name = name
+        self.birthday = birthday
+        self.height = height
+        self.weight = weight
+        self.cautionNote = cautionNote
+        self.goalContents = goalContents ?? []
+    }
+    
+    public var removeImage: Bool
+    public var memberType: String
+    public var name: String
+    public var birthday: String?
+    public var height: Double?
+    public var weight: Double?
+    public var cautionNote: String?
+    public var goalContents: [String]
+}
+

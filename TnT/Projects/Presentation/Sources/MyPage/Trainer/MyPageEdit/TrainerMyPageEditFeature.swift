@@ -307,7 +307,17 @@ import Foundation
 /// 회원 정보 수정 요청 Entity
 public struct EditUserInfoEntity: Equatable {
     
-    public init(profileImage: Data? = nil, removeImage: Bool, memberType: UserType, name: String, birthday: Date? = nil, height: Double? = nil, weight: Double? = nil, cautionNote: String? = nil, goalContents: [String]? = nil) {
+    public init(
+        profileImage: Data? = nil,
+        removeImage: Bool,
+        memberType: UserType,
+        name: String,
+        birthday: Date? = nil,
+        height: Double? = nil,
+        weight: Double? = nil,
+        cautionNote: String? = nil,
+        goalContents: [String]? = nil
+    ) {
         self.profileImage = profileImage
         self.removeImage = removeImage
         self.memberType = memberType
