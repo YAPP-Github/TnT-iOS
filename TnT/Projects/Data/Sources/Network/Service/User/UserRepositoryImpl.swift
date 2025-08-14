@@ -55,4 +55,15 @@ public struct UserRepositoryImpl: UserRepository {
     public func getMyPageInfo() async throws -> GetMyPageInfoResDTO {
         return try await networkService.request(UserTargetType.getMyPageInfo, decodingType: GetMyPageInfoResDTO.self)
     }
+    
+    ///  내 정보 수정 요청을 수행
+    public func putMyInfo(_ reqDTO: PutMyInfoReqDTO, profileImage: Data?) async throws -> EmptyResponse {
+        return try await networkService.request(
+            UserTargetType.putMyInfo(
+                reqDTO: reqDTO,
+                imgData: profileImage
+            ),
+            decodingType: EmptyResponse.self
+        )
+    }
 }

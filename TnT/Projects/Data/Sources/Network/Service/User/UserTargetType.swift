@@ -64,7 +64,7 @@ extension UserTargetType: TargetType {
             return .post
         
         case .putMyInfo:
-            return .patch
+            return .put
         }
     }
     
@@ -105,7 +105,7 @@ extension UserTargetType: TargetType {
     
     var interceptors: [any Interceptor] {
         switch self {
-        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
+        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo, .putMyInfo:
             return [
                 LoggingInterceptor(),
                 AuthTokenInterceptor(),

@@ -107,7 +107,7 @@ public struct PutMyInfoReqDTO: Encodable {
         height: Double? = nil,
         weight: Double? = nil,
         cautionNote: String? = nil,
-        goalContents: [String]?
+        goalContents: [String]? = nil
     ) {
         self.removeImage = removeImage
         self.memberType = memberType
