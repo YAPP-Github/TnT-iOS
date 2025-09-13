@@ -75,6 +75,14 @@ public struct TrainerMypageView: View {
                 .padding(.vertical, 12)
             Text(store.userName)
                 .typographyStyle(.heading2, with: .neutral950)
+                .padding(.bottom, 7)
+            TButton(
+                title: "개인정보 수정",
+                config: .small,
+                state: .default(.gray(isEnabled: true)),
+                action: { send(.tapEditInfoButton) }
+            )
+            .frame(width: 90)
         }
     }
     

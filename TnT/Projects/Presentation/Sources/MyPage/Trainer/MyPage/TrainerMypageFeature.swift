@@ -83,6 +83,8 @@ public struct TrainerMypageFeature {
         public enum View: Sendable, BindableAction {
             /// 바인딩할 액션을 처리 (알람)
             case binding(BindingAction<State>)
+            /// 개인정보 수정 버튼 탭
+            case tapEditInfoButton
             /// 서비스 이용약관 버튼 탭
             case tapTOSButton
             /// 개인정보 처리방침 버튼 탭
@@ -126,6 +128,9 @@ public struct TrainerMypageFeature {
                     
                 case .binding:
                     return .none
+                    
+                case .tapEditInfoButton:
+                    return .send(.setNavigating(.mypageInfoEdit))
                                         
                 case .tapTOSButton:
                     if let url = URL(string: AppLinks.termsOfService) {
@@ -254,6 +259,8 @@ extension TrainerMypageFeature {
     public enum RoutingScreen: Sendable {
         /// 초기 로그인 페이지
         case onboardingLogin
+        /// 마이페이지 정보 수정 페이지
+        case mypageInfoEdit
     }
 }
 
