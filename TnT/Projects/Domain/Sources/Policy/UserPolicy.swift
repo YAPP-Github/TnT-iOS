@@ -27,7 +27,7 @@ struct UserPolicy {
         textValidation: { TextValidator.isValidInput($0, maxLength: 3, regexPattern: #"^\d{3}$"#) },
         isRequired: false
     )
-    
+
     /// 몸무게 입력 검증 (정수 3자리 + 소수점 1자리)
     /// 정수 최소 2자리 이상, 소수점 1자리까지만
     static let weightInput: PolicyInputInfo = .init(
