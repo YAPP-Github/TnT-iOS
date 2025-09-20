@@ -12,6 +12,7 @@ import Foundation
 public struct EditUserInfoEntity: Equatable {
     
     public init(
+        prevProfileImageURL: String? = nil,
         profileImage: Data? = nil,
         removeImage: Bool,
         memberType: UserType,
@@ -22,6 +23,7 @@ public struct EditUserInfoEntity: Equatable {
         cautionNote: String? = nil,
         goalContents: [String]? = nil
     ) {
+        self.prevProfileImageURL = prevProfileImageURL
         self.profileImage = profileImage
         self.removeImage = removeImage
         self.memberType = memberType
@@ -32,6 +34,7 @@ public struct EditUserInfoEntity: Equatable {
         self.cautionNote = cautionNote
         self.goalContents = goalContents
     }
+    public var prevProfileImageURL: String?
     public var profileImage: Data?
     public var removeImage: Bool
     public var memberType: UserType
