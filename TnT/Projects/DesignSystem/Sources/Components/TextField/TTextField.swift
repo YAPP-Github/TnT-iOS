@@ -40,6 +40,7 @@ public struct TTextField: View {
         self._text = text
         self._status = textFieldStatus
         self.rightView = rightView()
+        self._textColor = .init(initialValue: textFieldStatus.wrappedValue.textColor(isFocused: false))
     }
     
     public var body: some View {
