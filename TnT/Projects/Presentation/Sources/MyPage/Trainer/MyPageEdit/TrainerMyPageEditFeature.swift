@@ -28,6 +28,14 @@ public struct TrainerMyPageEditFeature {
         var userName: String
         /// 선택된 프로필 이미지
         var userImageData: Data?
+        /// 이전 선택된 프로필 이미지
+        var prevUserImageData: Data?
+        /// 현재 입력/선택 상태가 초기값과 달라졌는지 여부
+        var hasChanges: Bool {
+            let nameChanged = userName != currentUserInfo.name
+            let imageChanged = userImageData != prevUserImageData
+            return nameChanged || imageChanged || currentUserInfo.removeImage
+        }
         // MARK: UI related state
         /// 텍스트 필드 상태 (빈 값 / 입력됨 / 유효하지 않음)
         var view_textFieldStatus: TTextField.Status
@@ -41,6 +49,10 @@ public struct TrainerMyPageEditFeature {
         var view_isFooterTextVisible: Bool {
             return view_textFieldStatus == .invalid
         }
+        /// 이름 최대 길이
+        var view_nameMaxLength: Int?
+        /// 바텀 시트 표시 여부
+        var view_isBottomSheetPresented: Bool
         /// 표시되는 팝업
         var view_popUp: PopUp?
         /// 팝업 표시 여부
@@ -55,18 +67,23 @@ public struct TrainerMyPageEditFeature {
             view_isPhotoPickerPresented: Bool = false,
             view_isNextButtonEnabled: Bool = false,
             view_photoPickerItem: PhotosPickerItem? = nil,
+            view_isBottomSheetPresented: Bool = false,
             view_popUp: PopUp? = nil,
-            view_isPopUpPresented: Bool = false
+            view_isPopUpPresented: Bool = false,
+            view_nameMaxLength: Int? = nil
         ) {
             self.currentUserInfo = currentUserInfo
             self.userName = currentUserInfo.name
             self.userImageData = currentUserInfo.profileImage
-            self.view_textFieldStatus = view_textFieldStatus
+            self.prevUserImageData = currentUserInfo.profileImage
+            self.view_textFieldStatus = currentUserInfo.name.isEmpty ? view_textFieldStatus : .filled
             self.view_isPhotoPickerPresented = view_isPhotoPickerPresented
             self.view_isDoneButtonEnabled = view_isNextButtonEnabled
             self.view_photoPickerItem = view_photoPickerItem
+            self.view_isBottomSheetPresented = view_isBottomSheetPresented
             self.view_popUp = view_popUp
             self.view_isPopUpPresented = view_isPopUpPresented
+            self.view_nameMaxLength = view_nameMaxLength
         }
     }
     
@@ -96,6 +113,10 @@ public struct TrainerMyPageEditFeature {
             case tapWriteButton
             /// "완료" 버튼이 눌렸을 때
             case tapDoneButton
+            /// 바텀 시트 "삭제하기" 버튼이 눌렸을 때
+            case tapBottomSheetDeleteButton
+            /// 바텀 시트 "앨범에서 사진 선택" 버튼이 눌렸을 때
+            case tapBottomSheetSelectButton
             /// 팝업 좌측 secondary 버튼 탭
             case tapPopUpSecondaryButton(popUp: PopUp)
             /// 팝업 우측 primary 버튼 탭
@@ -104,9 +125,8 @@ public struct TrainerMyPageEditFeature {
         
         @CasePathable
         public enum APIAction: Sendable {
-
-            /// 회원가입 POST
-            case postSignUp(fcmToken: String)
+            /// 회원 정보 수정
+            case putUserInfo(info: EditUserInfoEntity, profileImage: Data?)
         }
         
         @CasePathable
@@ -128,6 +148,7 @@ public struct TrainerMyPageEditFeature {
             case .view(let action):
                 switch action {
                 case .binding(\.userName):
+                    state.view_nameMaxLength = state.view_nameMaxLength ?? userUseCase.getMaxNameLength()
                     return self.validate(&state)
                     
                 case .binding(\.view_photoPickerItem):
@@ -142,7 +163,7 @@ public struct TrainerMyPageEditFeature {
                     return .none
                     
                 case .tapNavBackButton:
-                    if state.view_isDoneButtonEnabled {
+                    if state.hasChanges {
                         return self.setPopUpStatus(&state, status: .cancelEditing)
                     } else {
                         return .run { send in
@@ -151,11 +172,33 @@ public struct TrainerMyPageEditFeature {
                     }
                     
                 case .tapWriteButton:
-                    state.view_isPhotoPickerPresented = true
+                    state.view_isBottomSheetPresented = true
                     return .none
-                    
+
                 case .tapDoneButton:
-                    return .send(.api(.postSignUp(fcmToken: "")))
+                    state.currentUserInfo.name = state.userName
+                    return .send(.api(.putUserInfo(info: state.currentUserInfo, profileImage: state.userImageData)))
+
+                case .tapBottomSheetDeleteButton:
+                    state.view_isBottomSheetPresented = false
+                    return .send(.imagePicked(nil))
+
+                case .tapBottomSheetSelectButton:
+                    state.view_isBottomSheetPresented = false
+                    return .run { send in
+                        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+                        switch status {
+                        case .denied, .restricted:
+                            await send(.subFeature(.photoLibrary(.showPermissionPopup)))
+
+                        case .authorized, .limited, .notDetermined:
+                            let data = await PhotoPickerPresenter.shared.present(selectionLimit: 1)
+                            await send(.imagePicked(data))
+
+                        @unknown default:
+                            await send(.subFeature(.photoLibrary(.showPermissionPopup)))
+                        }
+                    }
                     
                 case .tapPopUpSecondaryButton(let popUp):
                     switch popUp {
@@ -189,23 +232,38 @@ public struct TrainerMyPageEditFeature {
                 
             case .api(let action):
                 switch action {
-                    
-                case .postSignUp:
-                    // 추후 API 로직 작성
-                    return .none
+
+                case let .putUserInfo(userInfo, image):
+                    return .run { send in
+                        let result = try await userUseRepoCase.putMyInfo(
+                            .init(
+                                removeImage: userInfo.removeImage,
+                                memberType: userInfo.memberType.englishName,
+                                name: userInfo.name
+                            ),
+                            profileImage: image
+                        )
+
+                        print(result)
+
+                        await send(.setNavigating)
+                    }
                 }
-                
+
             case .subFeature(let internalAction):
                 switch internalAction {
                 case .photoLibrary(.showPermissionPopup):
                     return setPopUpStatus(&state, status: .photoAuthorization)
-                    
+
                 default:
                     return .none
                 }
+
             case .imagePicked(let imgData):
+                // 이미지가 nil이면 삭제 처리, 데이터가 있으면 새 이미지로 교체
                 state.userImageData = imgData
-                return .none
+                state.currentUserInfo.removeImage = (imgData == nil)
+                return validate(&state)
                 
             case .setNavigating:
                 return .none
@@ -218,14 +276,16 @@ public struct TrainerMyPageEditFeature {
 private extension TrainerMyPageEditFeature {
     /// 사용자 입력값을 검증하고 상태를 업데이트합니다.
     func validate(_ state: inout State) -> Effect<Action> {
+        let maxLength = state.view_nameMaxLength ?? userUseCase.getMaxNameLength()
+        state.view_nameMaxLength = maxLength
         guard !state.userName.isEmpty, userUseCase.validateUserName(state.userName) else {
             state.view_textFieldStatus = state.userName.isEmpty ? .empty : .invalid
             state.view_isDoneButtonEnabled = false
             return .none
         }
-        
+
         state.view_textFieldStatus = .filled
-        state.view_isDoneButtonEnabled = true
+        state.view_isDoneButtonEnabled = state.hasChanges
         return .none
     }
     
