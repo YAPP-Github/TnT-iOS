@@ -130,7 +130,14 @@ public struct TrainerMypageFeature {
                     return .none
                     
                 case .tapEditInfoButton:
-                    return .send(.setNavigating(.mypageInfoEdit))
+                    return .send(.setNavigating(.mypageInfoEdit(
+                        .init(
+                            prevProfileImageURL: state.userImageUrl,
+                            removeImage: false,
+                            memberType: .trainer,
+                            name: state.userName
+                        )
+                    )))
                                         
                 case .tapTOSButton:
                     if let url = URL(string: AppLinks.termsOfService) {
@@ -260,7 +267,7 @@ extension TrainerMypageFeature {
         /// 초기 로그인 페이지
         case onboardingLogin
         /// 마이페이지 정보 수정 페이지
-        case mypageInfoEdit
+        case mypageInfoEdit(EditUserInfoEntity)
     }
 }
 
