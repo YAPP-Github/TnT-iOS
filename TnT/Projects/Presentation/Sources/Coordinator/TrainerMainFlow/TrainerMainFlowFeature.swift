@@ -70,9 +70,14 @@ public struct TrainerMainFlowFeature {
                         switch screen {
                         case .onboardingLogin:
                             return .send(.switchFlow(.onboardingFlow(.init())))
-                        
-                        case .mypageInfoEdit:
-                            state.path.append(.trainerMyPageEdit(.init(currentUserInfo: .init(removeImage: false, memberType: .trainer, name: "으아악"))))
+
+                        case .mypageInfoEdit(let info):
+                            state.path.append(.trainerMyPageEdit(.init(currentUserInfo: .init(
+                                prevProfileImageURL: info.prevProfileImageURL,
+                                removeImage: false,
+                                memberType: .trainer,
+                                name: info.name
+                            ))))
                             return .none
                         }
                     }
