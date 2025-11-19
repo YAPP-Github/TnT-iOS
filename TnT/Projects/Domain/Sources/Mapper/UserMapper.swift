@@ -14,7 +14,13 @@ public extension GetMyPageInfoResDTO {
             isConnected: self.trainee?.isConnected ?? false,
             name: self.name,
             profileImageUrl: self.profileImageUrl,
-            socialType: self.socialType
+            socialType: self.socialType,
+            birthday: self.trainee?.birthday ?? nil,
+            age: self.trainee?.age ?? nil,
+            height: self.trainee?.height ?? nil,
+            weight: self.trainee?.weight ?? nil,
+            cautionNote: self.trainee?.cautionNote ?? nil,
+            ptGoals: self.trainee?.ptGoals ?? []
         )
     }
     

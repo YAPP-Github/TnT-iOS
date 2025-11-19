@@ -42,6 +42,8 @@ public struct TraineeMainFlowView: View {
                 TraineeTrainingInfoInputView(store: store)
             case .traineeConnectionComplete(let store):
                 TraineeConnectionCompleteView(store: store)
+            case .traineeEditMypage(let store):
+                TraineeEditMyPageView(store: store)
             }
         }
     }
