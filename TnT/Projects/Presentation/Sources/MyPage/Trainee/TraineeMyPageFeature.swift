@@ -255,6 +255,7 @@ public struct TraineeMyPageFeature {
                 state.userName = myPageInfo.name
                 state.userImageUrl = myPageInfo.profileImageUrl
                 state.$traineeData.withLock { $0 = myPageInfo }
+                print("😀 state.traineeData \(state.traineeData)")
                 return .none
             
             case .setPopUpStatus(let popUp):
