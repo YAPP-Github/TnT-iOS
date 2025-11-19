@@ -642,12 +642,20 @@ public struct TraineeEditMyPageViewReducer {
                 case .updateUserInfo:
                     return .run { [state] send in
                         do {
+                            // 생년월일 형식 변환: YYYY/MM/DD -> yyyy-MM-dd
+                            let birthdayForAPI: String?
+                            if !state.birthDate.isEmpty {
+                                birthdayForAPI = state.birthDate.replacingOccurrences(of: "/", with: "-")
+                            } else {
+                                birthdayForAPI = nil
+                            }
+
                             // RequestDTO 생성
                             let reqDTO = UpdateUserInfoRequestDTO(
                                 removeImage: state.userImageData == nil && state.existingImageUrl != nil,
                                 memberType: "TRAINEE",
                                 name: state.userName,
-                                birthday: state.birthDate.isEmpty ? nil : state.birthDate,
+                                birthday: birthdayForAPI,
                                 height: Double(state.height),
                                 weight: Double(state.weight),
                                 cautionNote: state.cautionNote.isEmpty ? nil : state.cautionNote,
