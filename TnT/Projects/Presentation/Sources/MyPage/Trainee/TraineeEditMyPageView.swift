@@ -101,8 +101,7 @@ private extension TraineeEditMyPageView {
                 centerTitle: "내 정보 수정"
             ),
             leftAction: {
-                // TODO: 뒤로 가기 네비게이션 구현
-                print("뒤로 가기")
+                send(.tapNavBackButton)
             }
         )
     }
@@ -495,6 +494,8 @@ public struct TraineeEditMyPageViewReducer {
             case tapPopUpPrimaryButton(popUp: PopUp?)
             /// 완료 버튼 탭
             case tapCompleteButton
+            /// 네비바 백버튼 탭되었을 때
+            case tapNavBackButton
         }
 
         @CasePathable
@@ -580,8 +581,17 @@ public struct TraineeEditMyPageViewReducer {
                     guard let popUp = popUp else { return .none }
 
                     switch popUp {
-                    case .deleteProfileImage, .endToEditInfo, .photoAuthorization:
+                    case .deleteProfileImage, .photoAuthorization:
                         return .send(.setPopUpStatus(nil))
+
+                    case .endToEditInfo:
+                        // "종료" 버튼 - 팝업 닫고 뒤로가기
+                        state.view_popUp = nil
+                        state.view_isPopUpPresented = false
+                        return .run { _ in
+                            await self.dismiss()
+                        }
+
                     case .updateFailed:
                         return .send(.setPopUpStatus(nil))
                     }
@@ -615,6 +625,16 @@ public struct TraineeEditMyPageViewReducer {
                 case .tapCompleteButton:
                     // 완료 버튼 탭 -> API 호출
                     return .send(.api(.updateUserInfo))
+
+                case .tapNavBackButton:
+                    // 변경사항이 있으면 확인 팝업 표시, 없으면 바로 뒤로가기
+                    if state.hasChanges {
+                        return .send(.setPopUpStatus(.endToEditInfo))
+                    } else {
+                        return .run { _ in
+                            await self.dismiss()
+                        }
+                    }
                 }
 
             case .api(let action):
@@ -821,7 +841,7 @@ public extension TraineeEditMyPageViewReducer {
             case .deleteProfileImage:
                 return "삭제"
             case .endToEditInfo:
-                return "종료"
+                return "계속 수정"
             case .photoAuthorization:
                 return "설정으로 이동"
             case .updateFailed:
@@ -830,7 +850,12 @@ public extension TraineeEditMyPageViewReducer {
         }
 
         var secondaryButtonTitle: String {
-            return "취소"
+            switch self {
+            case .endToEditInfo:
+                return "종료"
+            default:
+                return "취소"
+            }
         }
     }
 }
