@@ -35,6 +35,20 @@ struct ToyProjectApp: App {
                     debugPrint(AuthController.handleOpenUrl(url: url))
                 }
             })
+
+//            TrainerMyPageEditView(
+//                store: .init(
+//                    initialState: TrainerMyPageEditFeature.State(
+//                        currentUserInfo: .init(
+//                            removeImage: false,
+//                            memberType: .trainer,
+//                            name: "asdf"
+//                        )
+//                    ),
+//                    reducer: { TrainerMyPageEditFeature()
+//                    }
+//                )
+//            )
         }
     }
 }
