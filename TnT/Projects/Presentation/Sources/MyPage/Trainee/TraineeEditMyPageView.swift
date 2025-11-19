@@ -404,6 +404,8 @@ public struct TraineeEditMyPageViewReducer {
         // MARK: - Original Data (for change detection)
         /// 초기 프로필 이미지 URL
         var originalImageUrl: String?
+        /// 초기 프로필 이미지 데이터
+        var originalImageData: Data?
         /// 초기 생년월일
         var originalBirthDate: String = ""
         /// 초기 키
@@ -425,9 +427,10 @@ public struct TraineeEditMyPageViewReducer {
 
         /// 변경사항이 있는지 확인
         var hasChanges: Bool {
-            // 이미지 변경 확인 (새로운 이미지가 선택되었거나, 기존 이미지가 삭제된 경우)
-            let imageChanged = (userImageData != nil && existingImageUrl != originalImageUrl) ||
-                               (userImageData == nil && existingImageUrl != originalImageUrl)
+            // 이미지 변경 확인
+            // 1. 새로운 이미지가 선택된 경우 (userImageData와 originalImageData가 다름)
+            // 2. 이미지가 삭제된 경우 (원래 있었는데 nil이 됨)
+            let imageChanged = userImageData != originalImageData
 
             // 각 필드 변경 확인
             let birthDateChanged = birthDate != originalBirthDate
@@ -465,6 +468,8 @@ public struct TraineeEditMyPageViewReducer {
         case imagePicked(Data?)
         /// 화면 진입 시 기존 이미지 로드
         case loadExistingImage
+        /// 기존 이미지 로드 완료 (원본 저장용)
+        case existingImageLoaded(Data)
 
         @CasePathable
         public enum View: Sendable, BindableAction {
@@ -728,12 +733,18 @@ public struct TraineeEditMyPageViewReducer {
                     return .run { send in
                         do {
                             let (data, _) = try await URLSession.shared.data(from: url)
-                            await send(.imagePicked(data))
+                            await send(.existingImageLoaded(data))
                         } catch {
                             print("Failed to load existing image: \(error)")
                         }
                     }
                 }
+                return .none
+
+            case .existingImageLoaded(let data):
+                // 기존 이미지를 로드한 경우, 현재 이미지와 원본 이미지 모두 설정
+                state.userImageData = data
+                state.originalImageData = data
                 return .none
 
             case .setPopUpStatus(let popUp):
