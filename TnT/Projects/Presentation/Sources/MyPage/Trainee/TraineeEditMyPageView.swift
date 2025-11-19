@@ -64,8 +64,8 @@ public struct TraineeEditMyPageView: View {
         }
         .sheet(isPresented: $store.view_isPhotoMenuBottomSheetPresented) {
             PhotoMenuBottomSheet()
-//                .presentationDetents([.height(store.userImageData != nil ? 160 : 80)])
-//                .presentationDragIndicator(.visible)
+                .presentationDetents([.height(160)])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $store.view_isDatePickerPresented) {
             TDatePickerView(
@@ -297,7 +297,7 @@ private extension TraineeEditMyPageView {
             } label: {
                 HStack {
                     Text("삭제하기")
-                        .typographyStyle(.body1Medium, with: .red500)
+                        .typographyStyle(.body1Medium, with: .neutral950)
                     Spacer()
                 }
                 .padding(.vertical, 16)
@@ -496,6 +496,10 @@ public struct TraineeEditMyPageViewReducer {
         public enum APIAction: Sendable {
             /// 정보 수정 API 호출
             case updateUserInfo
+            /// 정보 수정 성공
+            case updateUserInfoSuccess
+            /// 정보 수정 실패
+            case updateUserInfoFailure(Error)
         }
 
         @CasePathable
@@ -503,6 +507,9 @@ public struct TraineeEditMyPageViewReducer {
             case photoLibrary(PhotoLibraryFeature.Action)
         }
     }
+
+    @Dependency(\.userUseRepoCase) private var userRepository: UserRepository
+    @Dependency(\.dismiss) private var dismiss
 
     public init() {}
 
@@ -570,6 +577,8 @@ public struct TraineeEditMyPageViewReducer {
                     switch popUp {
                     case .deleteProfileImage, .endToEditInfo, .photoAuthorization:
                         return .send(.setPopUpStatus(nil))
+                    case .updateFailed:
+                        return .send(.setPopUpStatus(nil))
                     }
 
                 case .tapPopUpPrimaryButton(let popUp):
@@ -592,6 +601,10 @@ public struct TraineeEditMyPageViewReducer {
                             UIApplication.shared.open(url)
                         }
                         return .send(.setPopUpStatus(nil))
+
+                    case .updateFailed:
+                        // 팝업 닫기
+                        return .send(.setPopUpStatus(nil))
                     }
 
                 case .tapCompleteButton:
@@ -602,9 +615,53 @@ public struct TraineeEditMyPageViewReducer {
             case .api(let action):
                 switch action {
                 case .updateUserInfo:
-                    // TODO: API 구현 예정
-                    // 여기에 API 호출 로직을 추가할 예정
-                    return .none
+                    return .run { [state] send in
+                        do {
+                            // RequestDTO 생성
+                            let reqDTO = UpdateUserInfoRequestDTO(
+                                removeImage: state.userImageData == nil && state.existingImageUrl != nil,
+                                memberType: "TRAINEE",
+                                name: state.userName,
+                                birthday: state.birthDate.isEmpty ? nil : state.birthDate,
+                                height: Double(state.height),
+                                weight: Double(state.weight),
+                                cautionNote: state.cautionNote.isEmpty ? nil : state.cautionNote,
+                                ptGoals: state.selectedPurposes.map { $0.koreanName }
+                            )
+
+                            // API 호출
+                            _ = try await userRepository.putUpdateUserInfo(
+                                reqDTO,
+                                profileImage: state.userImageData
+                            )
+
+                            // 성공 시 마이페이지 정보 다시 불러오기 (shared state 자동 업데이트)
+                            let _ = try await userRepository.getMyPageInfo()
+
+                            await send(.api(.updateUserInfoSuccess))
+                        } catch {
+                            await send(.api(.updateUserInfoFailure(error)))
+                        }
+                    }
+
+                case .updateUserInfoSuccess:
+                    // 성공 토스트 표시
+                    NotificationCenter.default.post(
+                        toast: .init(
+                            presentType: .image(.icnCheckMarkGreen),
+                            message: "수정한 정보가 저장되었어요"
+                        )
+                    )
+
+                    // 네비게이션 팝
+                    return .run { _ in
+                        await self.dismiss()
+                    }
+
+                case .updateUserInfoFailure(let error):
+                    // 에러 팝업 표시
+                    let errorMessage = "정보 수정 중 오류가 발생했어요.\n잠시 후 다시 시도해주세요."
+                    return .send(.setPopUpStatus(.updateFailed(errorMessage)))
                 }
 
             case .subFeature(let internalAction):
@@ -697,6 +754,8 @@ public extension TraineeEditMyPageViewReducer {
         case endToEditInfo
         /// 사진 권한 요청
         case photoAuthorization
+        /// 정보 수정 실패
+        case updateFailed(String)
 
         var title: String {
             switch self {
@@ -706,6 +765,8 @@ public extension TraineeEditMyPageViewReducer {
                 return "정보 수정을 종료할까요?"
             case .photoAuthorization:
                 return "사진 접근 권한이 필요해요"
+            case .updateFailed:
+                return "정보 수정 실패"
             }
         }
 
@@ -717,12 +778,14 @@ public extension TraineeEditMyPageViewReducer {
                 return "수정 사항이 저장되지 않아요!"
             case .photoAuthorization:
                 return "프로필 사진을 변경하려면 사진 접근 권한이 필요해요"
+            case .updateFailed(let message):
+                return message
             }
         }
 
         var showAlertIcon: Bool {
             switch self {
-            case .deleteProfileImage, .endToEditInfo:
+            case .deleteProfileImage, .endToEditInfo, .updateFailed:
                 return true
             case .photoAuthorization:
                 return false
@@ -733,6 +796,8 @@ public extension TraineeEditMyPageViewReducer {
             switch self {
             case .deleteProfileImage, .endToEditInfo, .photoAuthorization:
                 return .tapPopUpSecondaryButton(popUp: self)
+            case .updateFailed:
+                return nil
             }
         }
 
@@ -748,6 +813,8 @@ public extension TraineeEditMyPageViewReducer {
                 return "종료"
             case .photoAuthorization:
                 return "설정으로 이동"
+            case .updateFailed:
+                return "확인"
             }
         }
 
