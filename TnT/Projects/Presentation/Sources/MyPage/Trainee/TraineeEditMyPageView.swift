@@ -50,6 +50,15 @@ public struct TraineeEditMyPageView: View {
         }
         .navigationBarBackButtonHidden()
         .keyboardDismissOnTap()
+        .bottomFixWith {
+            TBottomButton(
+                title: "완료",
+                isEnable: store.hasChanges
+            ) {
+                send(.tapCompleteButton)
+            }
+            .padding(.bottom, .safeAreaBottom)
+        }
         .tPopUp(isPresented: $store.view_isPopUpPresented) {
             PopUpView()
         }
@@ -392,12 +401,43 @@ public struct TraineeEditMyPageViewReducer {
         /// 주의사항 최대 글자 수
         var view_editorMaxCount: Int? = 100
 
+        // MARK: - Original Data (for change detection)
+        /// 초기 프로필 이미지 URL
+        var originalImageUrl: String?
+        /// 초기 생년월일
+        var originalBirthDate: String = ""
+        /// 초기 키
+        var originalHeight: String = ""
+        /// 초기 몸무게
+        var originalWeight: String = ""
+        /// 초기 주의사항
+        var originalCautionNote: String = ""
+        /// 초기 PT 목적
+        var originalPurposes: [TrainingPurpose] = []
+
         // MARK: - SubFeature
         var photoLibraryState = PhotoLibraryFeature.State()
 
         /// 이미지 표시 우선순위: 새로 선택한 이미지 > 기존 URL 이미지 > 기본 이미지
         var displayImageData: Data? {
             return userImageData
+        }
+
+        /// 변경사항이 있는지 확인
+        var hasChanges: Bool {
+            // 이미지 변경 확인 (새로운 이미지가 선택되었거나, 기존 이미지가 삭제된 경우)
+            let imageChanged = (userImageData != nil && existingImageUrl != originalImageUrl) ||
+                               (userImageData == nil && existingImageUrl != originalImageUrl)
+
+            // 각 필드 변경 확인
+            let birthDateChanged = birthDate != originalBirthDate
+            let heightChanged = height != originalHeight
+            let weightChanged = weight != originalWeight
+            let cautionNoteChanged = cautionNote != originalCautionNote
+            let purposesChanged = Set(selectedPurposes) != Set(originalPurposes)
+
+            return imageChanged || birthDateChanged || heightChanged ||
+                   weightChanged || cautionNoteChanged || purposesChanged
         }
 
         public init(
@@ -448,12 +488,14 @@ public struct TraineeEditMyPageViewReducer {
             case tapPopUpSecondaryButton(popUp: PopUp?)
             /// 팝업 우측 primary 버튼 탭
             case tapPopUpPrimaryButton(popUp: PopUp?)
+            /// 완료 버튼 탭
+            case tapCompleteButton
         }
 
         @CasePathable
         public enum APIAction: Sendable {
-            /// 확인 버튼 탭 - 정보변경
-            case tappedConfrimButton
+            /// 정보 수정 API 호출
+            case updateUserInfo
         }
 
         @CasePathable
@@ -551,11 +593,17 @@ public struct TraineeEditMyPageViewReducer {
                         }
                         return .send(.setPopUpStatus(nil))
                     }
+
+                case .tapCompleteButton:
+                    // 완료 버튼 탭 -> API 호출
+                    return .send(.api(.updateUserInfo))
                 }
 
             case .api(let action):
                 switch action {
-                case .tappedConfrimButton:
+                case .updateUserInfo:
+                    // TODO: API 구현 예정
+                    // 여기에 API 호출 로직을 추가할 예정
                     return .none
                 }
 
@@ -578,33 +626,42 @@ public struct TraineeEditMyPageViewReducer {
                 // 기본 정보
                 state.userName = traineeData.name
                 state.existingImageUrl = traineeData.profileImageUrl
+                state.originalImageUrl = traineeData.profileImageUrl
 
                 // 생년월일
                 if let birthday = traineeData.birthday, !birthday.isEmpty {
                     state.birthDate = birthday
+                    state.originalBirthDate = birthday
                     state.view_birthDateStatus = .filled
                 }
 
                 // 키
                 if let height = traineeData.height {
-                    state.height = String(format: "%.1f", height)
+                    let heightStr = String(format: "%.1f", height)
+                    state.height = heightStr
+                    state.originalHeight = heightStr
                     state.view_heightStatus = .filled
                 }
 
                 // 몸무게
                 if let weight = traineeData.weight {
-                    state.weight = String(format: "%.1f", weight)
+                    let weightStr = String(format: "%.1f", weight)
+                    state.weight = weightStr
+                    state.originalWeight = weightStr
                     state.view_weightStatus = .filled
                 }
 
                 // 주의사항
                 if let cautionNote = traineeData.cautionNote, !cautionNote.isEmpty {
                     state.cautionNote = cautionNote
+                    state.originalCautionNote = cautionNote
                     state.view_editorStatus = .filled
                 }
 
                 // PT 목적
-                state.selectedPurposes = traineeData.ptGoals.compactMap { TrainingPurpose(koreanName: $0) }
+                let purposes = traineeData.ptGoals.compactMap { TrainingPurpose(koreanName: $0) }
+                state.selectedPurposes = purposes
+                state.originalPurposes = purposes
 
                 // 프로필 이미지 로드
                 if let urlString = state.existingImageUrl,
