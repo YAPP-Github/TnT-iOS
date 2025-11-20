@@ -39,8 +39,6 @@ public struct TrainerMyPageEditFeature {
         // MARK: UI related state
         /// 텍스트 필드 상태 (빈 값 / 입력됨 / 유효하지 않음)
         var view_textFieldStatus: TTextField.Status
-        /// 포토 피커 표시 여부
-        var view_isPhotoPickerPresented: Bool
         /// "다음" 버튼 활성화 여부
         var view_isDoneButtonEnabled: Bool
         /// 현재 선택된 이미지 (PhotosPickerItem)
@@ -64,7 +62,6 @@ public struct TrainerMyPageEditFeature {
         public init(
             currentUserInfo: EditUserInfoEntity,
             view_textFieldStatus: TTextField.Status = .empty,
-            view_isPhotoPickerPresented: Bool = false,
             view_isNextButtonEnabled: Bool = false,
             view_photoPickerItem: PhotosPickerItem? = nil,
             view_isBottomSheetPresented: Bool = false,
@@ -77,7 +74,6 @@ public struct TrainerMyPageEditFeature {
             self.userImageData = currentUserInfo.profileImage
             self.prevUserImageData = currentUserInfo.profileImage
             self.view_textFieldStatus = currentUserInfo.name.isEmpty ? view_textFieldStatus : .filled
-            self.view_isPhotoPickerPresented = view_isPhotoPickerPresented
             self.view_isDoneButtonEnabled = view_isNextButtonEnabled
             self.view_photoPickerItem = view_photoPickerItem
             self.view_isBottomSheetPresented = view_isBottomSheetPresented
@@ -154,8 +150,11 @@ public struct TrainerMyPageEditFeature {
                 case .binding(\.view_photoPickerItem):
                     let item: PhotosPickerItem? = state.view_photoPickerItem
                     return .run { [item] send in
-                        if let item, let data = try? await item.loadTransferable(type: Data.self) {
+                        guard let item else { return }
+                        if let data = try? await item.loadTransferable(type: Data.self) {
                             await send(.imagePicked(data))
+                        } else {
+                            await send(.imagePicked(nil))
                         }
                     }
                     
@@ -184,21 +183,7 @@ public struct TrainerMyPageEditFeature {
                     return .send(.imagePicked(nil))
 
                 case .tapBottomSheetSelectButton:
-                    state.view_isBottomSheetPresented = false
-                    return .run { send in
-                        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-                        switch status {
-                        case .denied, .restricted:
-                            await send(.subFeature(.photoLibrary(.showPermissionPopup)))
-
-                        case .authorized, .limited, .notDetermined:
-                            let data = await PhotoPickerPresenter.shared.present(selectionLimit: 1)
-                            await send(.imagePicked(data))
-
-                        @unknown default:
-                            await send(.subFeature(.photoLibrary(.showPermissionPopup)))
-                        }
-                    }
+                    return .none
                     
                 case .tapPopUpSecondaryButton(let popUp):
                     switch popUp {
@@ -263,6 +248,7 @@ public struct TrainerMyPageEditFeature {
                 // 이미지가 nil이면 삭제 처리, 데이터가 있으면 새 이미지로 교체
                 state.userImageData = imgData
                 state.currentUserInfo.removeImage = (imgData == nil)
+                state.view_isBottomSheetPresented = false
                 return validate(&state)
                 
             case .setNavigating:

@@ -63,7 +63,18 @@ public struct TrainerMyPageEditView: View {
             VStack(spacing: 4) {
                 EditBottomSheetButton(title: "삭제하기") { send(.tapBottomSheetDeleteButton) }
 
-                EditBottomSheetButton(title: "앨범에서 사진 선택") { send(.tapBottomSheetSelectButton) }
+                PhotoPickerView(
+                    store: store.scope(
+                        state: \.photoLibraryState,
+                        action: \.subFeature.photoLibrary
+                    ),
+                    selectedItem: $store.view_photoPickerItem
+                ) {
+                    EditBottomSheetLabel(title: "앨범에서 사진 선택")
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    send(.tapBottomSheetSelectButton)
+                })
             }
             .padding(.bottom, 20)
             .autoSizingBottomSheet()
@@ -208,90 +219,17 @@ public struct TrainerMyPageEditView: View {
     }
 }
 
+    struct EditBottomSheetLabel: View {
+        let title: String
 
-
-// PhotoPickerPresenter.swift
-
-import UIKit
-import PhotosUI
-import UniformTypeIdentifiers
-
-@MainActor
-final class PhotoPickerPresenter: NSObject, PHPickerViewControllerDelegate {
-    static let shared = PhotoPickerPresenter()
-    private var continuation: CheckedContinuation<Data?, Never>?
-
-    /// 1장 선택, 편집 버전(current) 선호
-    func present(selectionLimit: Int = 1) async -> Data? {
-        // 이미 진행 중이면 이전 요청 무시
-        if continuation != nil { return nil }
-
-        var config = PHPickerConfiguration(photoLibrary: .shared())
-        config.selectionLimit = selectionLimit
-        config.filter = .images
-        config.preferredAssetRepresentationMode = .current
-
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-
-        guard let top = Self.topMostViewController() else { return nil }
-        top.present(picker, animated: true)
-
-        return await withCheckedContinuation { (cont: CheckedContinuation<Data?, Never>) in
-            self.continuation = cont
-        }
-    }
-
-    // MARK: - PHPicker Delegate
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-
-        guard let cont = continuation else { return }
-        continuation = nil
-
-        guard let first = results.first else {
-            cont.resume(returning: nil)
-            return
-        }
-
-        // UIImage로 로드 → JPEG로 인코딩 (HEIC 등 호환 위해)
-        if first.itemProvider.canLoadObject(ofClass: UIImage.self) {
-            first.itemProvider.loadObject(ofClass: UIImage.self) { obj, _ in
-                let img = obj as? UIImage
-                let data = img?.jpegData(compressionQuality: 0.9)
-                DispatchQueue.main.async { cont.resume(returning: data) }
+        var body: some View {
+            HStack {
+                Text(title)
+                    .typographyStyle(.body1Semibold, with: .neutral600)
+                Spacer()
             }
-            return
+            .padding(.horizontal, 20)
+            .padding(.vertical, 2.5)
+            .frame(height: 40)
         }
-
-        // 혹은 원시 데이터 시도
-        if first.itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-            first.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
-                DispatchQueue.main.async { cont.resume(returning: data) }
-            }
-            return
-        }
-
-        cont.resume(returning: nil)
     }
-
-    // MARK: - Top VC
-    private static func topMostViewController(base: UIViewController? = {
-        // 여러 씬 중 포어그라운드 활성 씬의 키 윈도우
-        let scenes = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .filter { $0.activationState == .foregroundActive }
-
-        let keyWin = scenes.first?.windows.first(where: { $0.isKeyWindow })
-        return keyWin?.rootViewController
-    }()) -> UIViewController? {
-
-        return UIApplication.shared
-            .connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first { $0.activationState == .foregroundActive }?
-            .windows
-            .first { $0.isKeyWindow }?
-            .rootViewController
-    }
-}
