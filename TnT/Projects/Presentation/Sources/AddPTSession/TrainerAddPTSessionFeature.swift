@@ -37,11 +37,11 @@ public struct TrainerAddPTSessionFeature {
         
         // MARK: UI related state
         /// 텍스트 필드 상태 (빈 값 / 입력됨 / 유효하지 않음)
-        var view_traineeStatus: TTextField.Status
-        var view_ptDateStatus: TTextField.Status
-        var view_startTimeStatus: TTextField.Status
-        var view_endTimeStatus: TTextField.Status
-        var view_memoStatus: TTextEditor.Status
+        var view_traineeStatus: TBoxTextField.Status
+        var view_ptDateStatus: TBoxTextField.Status
+        var view_startTimeStatus: TBoxTextField.Status
+        var view_endTimeStatus: TBoxTextField.Status
+        var view_memoStatus: TBoxTextEditor.Status
         /// 현재 포커스된 필드
         var view_focusField: FocusField?
         /// BottomSheet에 표시할 아이템
@@ -67,11 +67,11 @@ public struct TrainerAddPTSessionFeature {
             startTime: Date? = nil,
             endTime: Date? = nil,
             memo: String = "",
-            view_traineeStatus: TTextField.Status = .empty,
-            view_ptDateStatus: TTextField.Status = .empty,
-            view_startTimeStatus: TTextField.Status = .empty,
-            view_endTimeStatus: TTextField.Status = .empty,
-            view_memoStatus: TTextEditor.Status = .empty,
+            view_traineeStatus: TBoxTextField.Status = .empty,
+            view_ptDateStatus: TBoxTextField.Status = .empty,
+            view_startTimeStatus: TBoxTextField.Status = .empty,
+            view_endTimeStatus: TBoxTextField.Status = .empty,
+            view_memoStatus: TBoxTextEditor.Status = .empty,
             view_focusField: FocusField? = nil,
             view_bottomSheetItem: BottomSheetItem? = nil,
             view_isSubmitButtonEnabled: Bool = false,
@@ -237,17 +237,23 @@ public struct TrainerAddPTSessionFeature {
                     return .send(.api(.registerPTSession))
                     
                 case .tapPopUpSecondaryButton(let popUp):
-                    guard popUp != nil else { return .none }
-                    return .concatenate(
-                        setPopUpStatus(&state, status: nil),
-                        .send(.setNavigating)
-                    )
+                    guard let popUp else { return .none }
+                    switch popUp {
+                    case .cancelSessionAdd, .planExercise:
+                        return .concatenate(
+                            setPopUpStatus(&state, status: nil),
+                            .run { _ in await self.dismiss() }
+                        )
+                    }
                     
                 case .tapPopUpPrimaryButton(let popUp):
-                    guard popUp != nil else { return .none }
-                    return popUp == .sessionAdded
-                    ? .send(.setNavigating)
-                    : setPopUpStatus(&state, status: nil)
+                    guard let popUp else { return .none }
+                    switch popUp {
+                    case .cancelSessionAdd:
+                        return setPopUpStatus(&state, status: nil)
+                    case .planExercise:
+                        return setPopUpStatus(&state, status: nil)
+                    }
                     
                 case let .setFocus(oldFocus, newFocus):
                     state.view_focusField = newFocus
@@ -282,7 +288,7 @@ public struct TrainerAddPTSessionFeature {
                                 traineeId: traineeId
                             )
                         )
-                        await send(.setPopUp(.sessionAdded))
+                        await send(.setPopUp(.planExercise))
                     }
                 }
                 
@@ -303,13 +309,13 @@ public struct TrainerAddPTSessionFeature {
 // MARK: Internal Logic
 private extension TrainerAddPTSessionFeature {
     /// 메모 필드 상태 검증
-    func validateMemo(_ memo: String) -> TTextEditor.Status {
+    func validateMemo(_ memo: String) -> TBoxTextEditor.Status {
         guard !memo.isEmpty else { return .empty }
         return memo.count > 30 ? .invalid : .filled
     }
     
     /// 시작 시간 종료 시간 필드 상태 검증
-    func validateTimes(startTime: Date?, endTime: Date?) -> TTextField.Status? {
+    func validateTimes(startTime: Date?, endTime: Date?) -> TBoxTextField.Status? {
         guard let startTime, let endTime else { return nil }
         return startTime < endTime ? .filled : .invalid
     }
@@ -427,26 +433,26 @@ public extension TrainerAddPTSessionFeature {
 public extension TrainerAddPTSessionFeature {
     /// 본 화면에 팝업으로 표시되는 목록
     enum PopUp: Equatable, Sendable {
-        /// 수업 일정이 추가됐어요
-        case sessionAdded
         /// 수업 등록을 취소할까요?
         case cancelSessionAdd
+        /// 이어서 운동도 계획할까요?
+        case planExercise
         
         var title: String {
             switch self {
-            case .sessionAdded:
-                return "수업 일정이 추가됐어요"
             case .cancelSessionAdd:
                 return "수업 등록을 취소할까요?"
+            case .planExercise:
+                return "이어서 운동도 계획할까요?"
             }
         }
         
         var message: String {
             switch self {
-            case .sessionAdded:
-                return "등록된 일정은 트레이니에게도 표시돼요!"
             case .cancelSessionAdd:
                 return "일정이 저장되지 않아요"
+            case .planExercise:
+                return "수업 전 진행할 운동을 계획할 수 있어요"
             }
         }
         
@@ -454,7 +460,7 @@ public extension TrainerAddPTSessionFeature {
             switch self {
             case .cancelSessionAdd:
                 return true
-            case .sessionAdded:
+            case .planExercise:
                 return false
             }
         }
@@ -463,17 +469,17 @@ public extension TrainerAddPTSessionFeature {
             switch self {
             case .cancelSessionAdd:
                 return .tapPopUpSecondaryButton(popUp: self)
-            case .sessionAdded:
-                return nil
+            case .planExercise:
+                return .tapPopUpSecondaryButton(popUp: self)
             }
         }
         
         var primaryTitle: String {
             switch self {
-            case .sessionAdded:
-                return "확인"
             case .cancelSessionAdd:
                 return "계속 수정"
+            case .planExercise:
+                return "네"
             }
         }
         
