@@ -24,13 +24,14 @@ public struct TPopUpAlertView: View {
             // 텍스트 Section
             VStack(spacing: 8) {
                 VStack(spacing: 0) {
-                    if alertState.showAlertIcon {
+                    if let icon = alertState.icon {
+                        Image(icon.imageResource)
+                        .resizable()
+                        .frame(width: 80, height: 80)
+                    } else if alertState.showAlertIcon {
                         Image(.icnWarning)
                             .resizable()
                             .frame(width: 80, height: 80)
-                    } else {
-                        Color.clear
-                            .frame(height: 20)
                     }
                     Text(alertState.title)
                         .typographyStyle(.heading3, with: .neutral900)

@@ -438,6 +438,15 @@ public extension TrainerAddPTSessionFeature {
         /// 이어서 운동도 계획할까요?
         case planExercise
         
+        var icon: TPopupAlertState.PopupIcon? {
+            switch self {
+            case .cancelSessionAdd:
+                return nil
+            case .planExercise:
+                return .checkMarkLightGreen
+            }
+        }
+        
         var title: String {
             switch self {
             case .cancelSessionAdd:

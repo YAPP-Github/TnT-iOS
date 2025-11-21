@@ -35,6 +35,7 @@ public extension ImageResource {
     static let icnCheckMarkEmpty: ImageResource = DesignSystemAsset.icnCheckMarkEmpty.imageResource
     static let icnCheckMarkGreen: ImageResource = DesignSystemAsset.icnCheckMarkGreen.imageResource
     static let icnCheckMarkFilled: ImageResource = DesignSystemAsset.icnCheckMarkFilled.imageResource
+    static let icnCheckMarkLightGreen: ImageResource = DesignSystemAsset.icnCheckMarkLightGreen.imageResource
     static let icnCheckButtonUnselected: ImageResource = DesignSystemAsset.icnCheckButtonUnselected.imageResource
     static let icnCheckButtonSelected: ImageResource = DesignSystemAsset.icnCheckButtonSelected.imageResource
     static let icnStarEmpty: ImageResource = DesignSystemAsset.icnStarEmpty.imageResource
@@ -71,6 +72,7 @@ public extension ImageResource {
     static let icnTriangleLeft32px: ImageResource = DesignSystemAsset.icnTriangleLeft32.imageResource
     static let icnTriangleRight32px: ImageResource = DesignSystemAsset.icnTriangleRight32.imageResource
     static let icnWarning: ImageResource = DesignSystemAsset.icnWarning.imageResource
+    static let icnQuestionMark: ImageResource = DesignSystemAsset.icnQuestionMark.imageResource
 }
 
 // MARK: Image

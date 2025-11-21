@@ -348,7 +348,7 @@ public struct TrainerAddPTSessionView: View {
                 alertState: .init(
                     title: popUp.title,
                     message: popUp.message,
-                    showAlertIcon: popUp.showAlertIcon,
+                    showAlertIcon: popUp.showAlertIcon, icon: popUp.icon,
                     buttons: buttons
                 )
             )
