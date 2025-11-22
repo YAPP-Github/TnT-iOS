@@ -171,7 +171,7 @@ public struct TrainerAddPTSessionFeature {
                     return .none
                     
                 case .tapNavBackButton:
-                    if state.view_isSubmitButtonEnabled {
+                    if hasFormChanges(state) {
                         return self.setPopUpStatus(&state, status: .cancelSessionAdd)
                     } else {
                         return .run { send in
@@ -386,6 +386,19 @@ private extension TrainerAddPTSessionFeature {
             minute: timeComponents.minute,
             second: timeComponents.second
         ))
+    }
+    
+    /// 사용자가 폼에 값을 입력했는지 확인합니다
+    func hasFormChanges(_ state: State) -> Bool {
+        if state.trainee != nil || state.startTime != nil || state.endTime != nil || !state.memo.isEmpty {
+            return true
+        }
+        
+        if let ptDate = state.ptDate, !Calendar.current.isDate(ptDate, inSameDayAs: state.calendarSelectedDate) {
+            return true
+        }
+        
+        return false
     }
 }
 

@@ -2,7 +2,7 @@
 //  TBoxTextEditor.swift
 //  DesignSystem
 //
-//  Created by Codex on 11/22/25.
+//  Created by 박민서 on 11/22/25.
 //  Copyright © 2025 yapp25thTeamTnT. All rights reserved.
 //
 

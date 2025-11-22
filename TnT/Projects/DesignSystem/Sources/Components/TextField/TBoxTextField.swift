@@ -2,7 +2,7 @@
 //  TBoxTextField.swift
 //  DesignSystem
 //
-//  Created by Claude on 11/21/25.
+//  Created by 박민서 on 11/21/25.
 //  Copyright © 2025 yapp25thTeamTnT. All rights reserved.
 //
 
