@@ -97,7 +97,7 @@ public struct PostSignUpReqDTO: Encodable {
 }
 
 /// 회원 정보 수정 요청 DTO
-public struct UpdateUserInfoRequestDTO: Codable, Equatable {
+public struct UpdateUserInfoRequestDTO: Encodable, Equatable {
     /// 이미지 삭제 여부
     public let removeImage: Bool
     /// 회원 타입 (TRAINER, TRAINEE)

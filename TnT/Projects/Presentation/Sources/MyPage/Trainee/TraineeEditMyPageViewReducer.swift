@@ -90,8 +90,16 @@ public struct TraineeEditMyPageViewReducer {
             return userImageData
         }
 
-        /// 변경사항이 있는지 확인
+        /// 변경사항이 있는지 확인하고, 유효성 검증도 통과했는지 확인
         var hasChanges: Bool {
+            // 입력값 에러가 있으면 false 반환
+            if view_heightStatus == .invalid ||
+               view_weightStatus == .invalid ||
+               view_birthDateStatus == .invalid ||
+               view_editorStatus == .invalid {
+                return false
+            }
+
             // 이미지 변경 확인
             // 1. 새로운 이미지가 선택된 경우 (userImageData와 originalImageData가 다름)
             // 2. 이미지가 삭제된 경우 (원래 있었는데 nil이 됨)
@@ -181,6 +189,7 @@ public struct TraineeEditMyPageViewReducer {
     }
 
     @Dependency(\.userUseRepoCase) private var userRepository: UserRepository
+    @Dependency(\.userUseCase) private var userUseCase: UserUseCase
     @Dependency(\.dismiss) private var dismiss
 
     public init() {}
@@ -204,6 +213,39 @@ public struct TraineeEditMyPageViewReducer {
                         }
                     }
 
+                case .binding(\.height):
+                    // 키 입력값 검증
+                    if state.height.isEmpty {
+                        state.view_heightStatus = .empty
+                    } else if userUseCase.validateHeight(state.height) {
+                        state.view_heightStatus = .filled
+                    } else {
+                        state.view_heightStatus = .invalid
+                    }
+                    return .none
+
+                case .binding(\.weight):
+                    // 몸무게 입력값 검증
+                    if state.weight.isEmpty {
+                        state.view_weightStatus = .empty
+                    } else if userUseCase.validateWeight(state.weight) {
+                        state.view_weightStatus = .filled
+                    } else {
+                        state.view_weightStatus = .invalid
+                    }
+                    return .none
+
+                case .binding(\.cautionNote):
+                    // 주의사항 입력값 검증
+                    if state.cautionNote.isEmpty {
+                        state.view_editorStatus = .empty
+                    } else if userUseCase.validatePrecaution(state.cautionNote) {
+                        state.view_editorStatus = .filled
+                    } else {
+                        state.view_editorStatus = .invalid
+                    }
+                    return .none
+
                 case .binding:
                     return .none
 
@@ -215,8 +257,16 @@ public struct TraineeEditMyPageViewReducer {
                     return .none
 
                 case .tapBirthDatePickerDoneButton(let date):
-                    state.birthDate = date.toString(format: .yyyyMMddSlash)
-                    state.view_birthDateStatus = .filled
+                    let dateString = date.toString(format: .yyyyMMddSlash)
+                    state.birthDate = dateString
+
+                    // 생년월일 검증
+                    if userUseCase.validateBirthDate(dateString) {
+                        state.view_birthDateStatus = .filled
+                    } else {
+                        state.view_birthDateStatus = .invalid
+                    }
+
                     state.view_isDatePickerPresented = false
                     return .none
 
@@ -289,11 +339,35 @@ public struct TraineeEditMyPageViewReducer {
                     }
 
                 case .tapCompleteButton:
-                    // 완료 버튼 탭 -> API 호출
+                    var hasError = false
+
+                    if !state.birthDate.isEmpty && !userUseCase.validateBirthDate(state.birthDate) {
+                        state.view_birthDateStatus = .invalid
+                        hasError = true
+                    }
+
+                    if !state.height.isEmpty && !userUseCase.validateHeight(state.height) {
+                        state.view_heightStatus = .invalid
+                        hasError = true
+                    }
+
+                    if !state.weight.isEmpty && !userUseCase.validateWeight(state.weight) {
+                        state.view_weightStatus = .invalid
+                        hasError = true
+                    }
+                    
+                    if !state.cautionNote.isEmpty && !userUseCase.validatePrecaution(state.cautionNote) {
+                        state.view_editorStatus = .invalid
+                        hasError = true
+                    }
+                    
+                    if hasError {
+                        return .none
+                    }
+
                     return .send(.api(.updateUserInfo))
 
                 case .tapNavBackButton:
-                    // 변경사항이 있으면 확인 팝업 표시, 없으면 바로 뒤로가기
                     if state.hasChanges {
                         return .send(.setPopUpStatus(.endToEditInfo))
                     } else {
@@ -308,7 +382,6 @@ public struct TraineeEditMyPageViewReducer {
                 case .updateUserInfo:
                     return .run { [state] send in
                         do {
-                            // 생년월일 형식 변환: YYYY/MM/DD -> yyyy-MM-dd
                             let birthdayForAPI: String?
                             if !state.birthDate.isEmpty {
                                 birthdayForAPI = state.birthDate.replacingOccurrences(of: "/", with: "-")
@@ -316,7 +389,6 @@ public struct TraineeEditMyPageViewReducer {
                                 birthdayForAPI = nil
                             }
 
-                            // RequestDTO 생성
                             let reqDTO = UpdateUserInfoRequestDTO(
                                 removeImage: state.userImageData == nil && state.existingImageUrl != nil,
                                 memberType: "TRAINEE",
@@ -327,14 +399,12 @@ public struct TraineeEditMyPageViewReducer {
                                 cautionNote: state.cautionNote.isEmpty ? nil : state.cautionNote,
                                 ptGoals: state.selectedPurposes.map { $0.koreanName }
                             )
-
-                            // API 호출
+                            
                             _ = try await userRepository.putUpdateUserInfo(
                                 reqDTO,
                                 profileImage: state.userImageData
                             )
-
-                            // 성공 시 마이페이지 정보 다시 불러오기 (shared state 자동 업데이트)
+                            
                             let _ = try await userRepository.getMyPageInfo()
 
                             await send(.api(.updateUserInfoSuccess))

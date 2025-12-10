@@ -153,10 +153,7 @@ private extension TraineeEditMyPageView {
     private func NameSection() -> some View {
         TTextField(
             placeholder: "닉네임을 입력해주세요",
-            text: Binding(
-                get: { store.userName },
-                set: { _ in }
-            ),
+            text: $store.userName,
             textFieldStatus: .constant(.filled)
         )
         .withSectionLayout(

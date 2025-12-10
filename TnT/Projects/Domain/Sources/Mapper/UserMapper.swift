@@ -15,11 +15,11 @@ public extension GetMyPageInfoResDTO {
             name: self.name,
             profileImageUrl: self.profileImageUrl,
             socialType: self.socialType,
-            birthday: self.trainee?.birthday ?? nil,
-            age: self.trainee?.age ?? nil,
-            height: self.trainee?.height ?? nil,
-            weight: self.trainee?.weight ?? nil,
-            cautionNote: self.trainee?.cautionNote ?? nil,
+            birthday: self.trainee?.birthday,
+            age: self.trainee?.age,
+            height: self.trainee?.height,
+            weight: self.trainee?.weight,
+            cautionNote: self.trainee?.cautionNote,
             ptGoals: self.trainee?.ptGoals ?? []
         )
     }
