@@ -33,9 +33,7 @@ public struct TraineeMainFlowFeature {
     public init() {}
     
     public var body: some ReducerOf<Self> {
-        Reduce {
-            state,
-            action in
+        Reduce { state, action in
             switch action {
             case let .path(action):
                 switch action {
@@ -69,6 +67,7 @@ public struct TraineeMainFlowFeature {
                     case .traineeMyPage(let screen):
                         switch screen {
                         case .traineeInfoEdit:
+                            state.path.append(.traineeEditMypage(.init()))
                             return .none
                             
                             /// 마이페이지 초대코드 입력하기 버튼 탭-> 초대코드 입력 화면 이동
@@ -160,5 +159,7 @@ extension TraineeMainFlowFeature {
         case traineeTrainingInfoInput(TraineeTrainingInfoInputFeature)
         /// 트레이니-트레이너 연결 완료
         case traineeConnectionComplete(TraineeConnectionCompleteFeature)
+        /// 트레이니-개인정보수정화면 이동
+        case traineeEditMypage(TraineeEditMyPageViewReducer)
     }
 }

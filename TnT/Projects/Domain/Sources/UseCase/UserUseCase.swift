@@ -91,4 +91,8 @@ extension DefaultUserUseCase: UserRepository {
     public func getMyPageInfo() async throws -> GetMyPageInfoResDTO {
         return try await userRepostiory.getMyPageInfo()
     }
+
+    public func putUpdateUserInfo(_ reqDTO: UpdateUserInfoRequestDTO, profileImage: Data?) async throws -> EmptyResponse {
+        return try await userRepostiory.putUpdateUserInfo(reqDTO, profileImage: profileImage)
+    }
 }

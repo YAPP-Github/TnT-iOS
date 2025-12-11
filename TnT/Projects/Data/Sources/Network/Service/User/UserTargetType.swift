@@ -24,6 +24,8 @@ public enum UserTargetType {
     case postWithdrawal
     /// 마이페이지 정보 요청
     case getMyPageInfo
+    /// 회원 정보 수정 요청
+    case putUpdateUserInfo(reqDTO: UpdateUserInfoRequestDTO, imgData: Data?)
 }
 
 extension UserTargetType: TargetType {
@@ -35,20 +37,20 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck:
             return "/check-session"
-            
+
         case .postSocialLogin:
             return "/login"
-            
+
         case .postSignUp:
             return "/members/sign-up"
-            
+
         case .postLogout:
             return "/logout"
-            
+
         case .postWithdrawal:
             return "/members/withdraw"
-            
-        case .getMyPageInfo:
+
+        case .getMyPageInfo, .putUpdateUserInfo:
             return "/members"
         }
     }
@@ -57,9 +59,12 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .getMyPageInfo:
             return .get
-            
+
         case .postSocialLogin, .postSignUp, .postLogout, .postWithdrawal:
             return .post
+
+        case .putUpdateUserInfo:
+            return .put
         }
     }
     
@@ -67,18 +72,28 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
             return .requestPlain
-        
+
         case .postSocialLogin(let reqDto):
             return .requestJSONEncodable(encodable: reqDto)
-            
+
         case let .postSignUp(reqDto, imgData):
             let jsons: [MultipartJSON] = [.init(jsonName: "request", json: reqDto)]
-            
+
             // 프로필 이미지가 있을 경우 멀티파트 업로드 처리
             let files: [MultipartFile] = imgData.map {
                 [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
             } ?? []
-            
+
+            return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
+
+        case let .putUpdateUserInfo(reqDto, imgData):
+            let jsons: [MultipartJSON] = [.init(jsonName: "request", json: reqDto)]
+
+            // 프로필 이미지가 있을 경우 멀티파트 업로드 처리
+            let files: [MultipartFile] = imgData.map {
+                [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
+            } ?? []
+
             return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
         }
     }
@@ -87,21 +102,18 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
             return nil
-            
+
         case .postSocialLogin:
             return ["Content-Type": "application/json"]
-            
-        case .postSignUp:
-            return [
-                "Content-Type": "multipart/form-data",
-                "Authorization": "SESSION-ID 1111"
-            ]
+
+        case .postSignUp, .putUpdateUserInfo:
+            return ["Content-Type": "multipart/form-data"]
         }
     }
     
     var interceptors: [any Interceptor] {
         switch self {
-        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
+        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo, .putUpdateUserInfo:
             return [
                 LoggingInterceptor(),
                 AuthTokenInterceptor(),
