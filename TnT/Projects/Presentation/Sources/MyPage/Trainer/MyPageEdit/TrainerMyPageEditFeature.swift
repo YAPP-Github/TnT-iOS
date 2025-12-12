@@ -1,0 +1,357 @@
+//
+//  TrainerMyPageEditFeature.swift
+//  Presentation
+//
+//  Created by 박민서 on 7/6/25.
+//  Copyright © 2025 yapp25thTeamTnT. All rights reserved.
+//
+
+import UIKit
+import _PhotosUI_SwiftUI
+import ComposableArchitecture
+
+import Domain
+import DesignSystem
+
+@Reducer
+/// 트레이너 마이페이지 내 정보 수정을 담당하는 리듀서입니다.
+public struct TrainerMyPageEditFeature {
+    
+    public init() {}
+    
+    @ObservableState
+    public struct State: Equatable {
+        // MARK: Data related state
+        /// 현재 유저 정보
+        var currentUserInfo: EditUserInfoEntity
+        /// 현재 입력된 사용자 이름
+        var userName: String
+        /// 선택된 프로필 이미지
+        var userImageData: Data?
+        /// 이전 선택된 프로필 이미지
+        var prevUserImageData: Data?
+        /// 현재 입력/선택 상태가 초기값과 달라졌는지 여부
+        var hasChanges: Bool {
+            let nameChanged = userName != currentUserInfo.name
+            let imageChanged = userImageData != prevUserImageData
+            return nameChanged || imageChanged || currentUserInfo.removeImage
+        }
+        // MARK: UI related state
+        /// 텍스트 필드 상태 (빈 값 / 입력됨 / 유효하지 않음)
+        var view_textFieldStatus: TTextField.Status
+        /// "다음" 버튼 활성화 여부
+        var view_isDoneButtonEnabled: Bool
+        /// 현재 선택된 이미지 (PhotosPickerItem)
+        var view_photoPickerItem: PhotosPickerItem?
+        /// 하단 푸터 텍스트 표시 여부 (이름이 유효하지 않을 경우 표시)
+        var view_isFooterTextVisible: Bool {
+            return view_textFieldStatus == .invalid
+        }
+        /// 이름 최대 길이
+        var view_nameMaxLength: Int?
+        /// 바텀 시트 표시 여부
+        var view_isBottomSheetPresented: Bool
+        /// 표시되는 팝업
+        var view_popUp: PopUp?
+        /// 팝업 표시 여부
+        var view_isPopUpPresented: Bool
+        
+        // MARK: SubFeature state
+        var photoLibraryState = PhotoLibraryFeature.State()
+        
+        public init(
+            currentUserInfo: EditUserInfoEntity,
+            view_textFieldStatus: TTextField.Status = .empty,
+            view_isNextButtonEnabled: Bool = false,
+            view_photoPickerItem: PhotosPickerItem? = nil,
+            view_isBottomSheetPresented: Bool = false,
+            view_popUp: PopUp? = nil,
+            view_isPopUpPresented: Bool = false,
+            view_nameMaxLength: Int? = nil
+        ) {
+            self.currentUserInfo = currentUserInfo
+            self.userName = currentUserInfo.name
+            self.userImageData = currentUserInfo.profileImage
+            self.prevUserImageData = currentUserInfo.profileImage
+            self.view_textFieldStatus = currentUserInfo.name.isEmpty ? view_textFieldStatus : .filled
+            self.view_isDoneButtonEnabled = view_isNextButtonEnabled
+            self.view_photoPickerItem = view_photoPickerItem
+            self.view_isBottomSheetPresented = view_isBottomSheetPresented
+            self.view_popUp = view_popUp
+            self.view_isPopUpPresented = view_isPopUpPresented
+            self.view_nameMaxLength = view_nameMaxLength
+        }
+    }
+    
+    @Dependency(\.userUseCase) private var userUseCase: UserUseCase
+    @Dependency(\.userUseRepoCase) private var userUseRepoCase: UserRepository
+    @Dependency(\.dismiss) private var dismiss
+    
+    public enum Action: Sendable, ViewAction {
+        /// 뷰에서 발생한 액션을 처리합니다.
+        case view(View)
+        /// api 콜 액션을 처리합니다
+        case api(APIAction)
+        /// 하위 피처 액션을 처리합니다
+        case subFeature(SubFeatureAction)
+        /// 선택된 이미지 데이터 저장
+        case imagePicked(Data?)
+        /// 네비게이션 여부 설정
+        case setNavigating
+        
+        @CasePathable
+        public enum View: Sendable, BindableAction {
+            /// 바인딩할 액션을 처리합니다
+            case binding(BindingAction<State>)
+            /// 네비게이션 백 버튼 탭
+            case tapNavBackButton
+            /// 프로필 사진 변경 버튼이 눌렸을 때 (사진 선택 모달 띄우기)
+            case tapWriteButton
+            /// "완료" 버튼이 눌렸을 때
+            case tapDoneButton
+            /// 바텀 시트 "삭제하기" 버튼이 눌렸을 때
+            case tapBottomSheetDeleteButton
+            /// 바텀 시트 "앨범에서 사진 선택" 버튼이 눌렸을 때
+            case tapBottomSheetSelectButton
+            /// 팝업 좌측 secondary 버튼 탭
+            case tapPopUpSecondaryButton(popUp: PopUp)
+            /// 팝업 우측 primary 버튼 탭
+            case tapPopUpPrimaryButton(popUp: PopUp)
+        }
+        
+        @CasePathable
+        public enum APIAction: Sendable {
+            /// 회원 정보 수정
+            case putUserInfo(info: EditUserInfoEntity, profileImage: Data?)
+        }
+        
+        @CasePathable
+        public enum SubFeatureAction: Sendable {
+            case photoLibrary(PhotoLibraryFeature.Action)
+        }
+    }
+    
+    public var body: some ReducerOf<Self> {
+        
+        Scope(state: \.photoLibraryState, action: \.subFeature.photoLibrary) {
+            PhotoLibraryFeature()
+        }
+        
+        BindingReducer(action: \.view)
+        
+        Reduce {
+            state,
+            action in
+            switch action {
+            case .view(let action):
+                switch action {
+                case .binding(\.userName):
+                    state.view_nameMaxLength = state.view_nameMaxLength ?? userUseCase.getMaxNameLength()
+                    return self.validate(&state)
+                    
+                case .binding(\.view_photoPickerItem):
+                    let item: PhotosPickerItem? = state.view_photoPickerItem
+                    return .run { [item] send in
+                        guard let item else { return }
+                        if let data = try? await item.loadTransferable(type: Data.self) {
+                            await send(.imagePicked(data))
+                        } else {
+                            await send(.imagePicked(nil))
+                        }
+                    }
+                    
+                case .binding:
+                    return .none
+                    
+                case .tapNavBackButton:
+                    if state.hasChanges {
+                        return self.setPopUpStatus(&state, status: .cancelEditing)
+                    } else {
+                        return .run { send in
+                            await self.dismiss()
+                        }
+                    }
+                    
+                case .tapWriteButton:
+                    state.view_isBottomSheetPresented = true
+                    return .none
+                    
+                case .tapDoneButton:
+                    state.currentUserInfo.name = state.userName
+                    return .send(.api(.putUserInfo(info: state.currentUserInfo, profileImage: state.userImageData)))
+                    
+                case .tapBottomSheetDeleteButton:
+                    state.view_isBottomSheetPresented = false
+                    return .send(.imagePicked(nil))
+                    
+                case .tapBottomSheetSelectButton:
+                    return .none
+                    
+                case .tapPopUpSecondaryButton(let popUp):
+                    switch popUp {
+                    case .photoAuthorization:
+                        return setPopUpStatus(&state, status: nil)
+                        
+                    case .cancelEditing:
+                        return .concatenate(
+                            setPopUpStatus(&state, status: nil),
+                            .send(.setNavigating)
+                        )
+                    }
+                    
+                case .tapPopUpPrimaryButton(let popUp):
+                    switch popUp {
+                    case .photoAuthorization:
+                        if let url = URL(string: UIApplication.openSettingsURLString),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                        
+                        return .none
+                        
+                    case .cancelEditing:
+                        return .concatenate(
+                            setPopUpStatus(&state, status: nil),
+                            .send(.setNavigating)
+                        )
+                    }
+                }
+                
+            case .api(let action):
+                switch action {
+                    
+                case let .putUserInfo(userInfo, image):
+                    return .run { send in
+                        let result = try await userUseRepoCase.putUpdateUserInfo(
+                            .init(
+                                removeImage: userInfo.removeImage,
+                                memberType: userInfo.memberType.englishName,
+                                name: userInfo.name,
+                                birthday: nil,
+                                height: nil,
+                                weight: nil,
+                                cautionNote: nil,
+                                ptGoals: nil
+                            ),
+                            profileImage: image
+                        )
+
+                        print(result)
+
+                        await send(.setNavigating)
+                    }
+                }
+
+            case .subFeature(let internalAction):
+                switch internalAction {
+                case .photoLibrary(.showPermissionPopup):
+                    return setPopUpStatus(&state, status: .photoAuthorization)
+
+                default:
+                    return .none
+                }
+
+            case .imagePicked(let imgData):
+                // 이미지가 nil이면 삭제 처리, 데이터가 있으면 새 이미지로 교체
+                state.userImageData = imgData
+                state.currentUserInfo.removeImage = (imgData == nil)
+                state.view_isBottomSheetPresented = false
+                return validate(&state)
+                
+            case .setNavigating:
+                return .none
+            }
+        }
+    }
+}
+
+// MARK: Internal Logic
+private extension TrainerMyPageEditFeature {
+    /// 사용자 입력값을 검증하고 상태를 업데이트합니다.
+    func validate(_ state: inout State) -> Effect<Action> {
+        let maxLength = state.view_nameMaxLength ?? userUseCase.getMaxNameLength()
+        state.view_nameMaxLength = maxLength
+        guard !state.userName.isEmpty, userUseCase.validateUserName(state.userName) else {
+            state.view_textFieldStatus = state.userName.isEmpty ? .empty : .invalid
+            state.view_isDoneButtonEnabled = false
+            return .none
+        }
+
+        state.view_textFieldStatus = .filled
+        state.view_isDoneButtonEnabled = state.hasChanges
+        return .none
+    }
+    
+    /// 팝업 상태, 표시 상태를 업데이트
+    /// status nil 입력인 경우 팝업 표시 해제
+    func setPopUpStatus(_ state: inout State, status: PopUp?) -> Effect<Action> {
+        state.view_popUp = status
+        state.view_isPopUpPresented = status != nil
+        return .none
+    }
+}
+
+// MARK: PopUp
+public extension TrainerMyPageEditFeature {
+    /// 본 화면에 팝업으로 표시되는 목록
+    enum PopUp: Equatable, Sendable {
+        /// 사진 접근 권한이 필요해요
+        case photoAuthorization
+        /// 정보 수정을 종료할까요?
+        case cancelEditing
+        
+        var title: String {
+            switch self {
+            case .photoAuthorization:
+                return "프로필 사진 설정을 위해\n사진 접근 권한이 필요해요"
+                
+            case .cancelEditing:
+                return "정보 수정을 종료할까요?"
+            }
+        }
+        
+        var message: String {
+            switch self {
+            case .photoAuthorization:
+                return "‘TnT'는 프로필 사진 설정, 운동 기록 및 식단 기록 저장 등 주요 기능 제공을 위해 사진 접근 권한이 필요합니다.\n설정에서 권한을 활성화해주세요."
+            case .cancelEditing:
+                return "수정 사항이 저장되지 않아요!"
+            }
+        }
+        
+        var showAlertIcon: Bool {
+            switch self {
+            case .photoAuthorization:
+                return false
+            case .cancelEditing:
+                return true
+            }
+        }
+        
+        var secondaryTitle: String {
+            switch self {
+            case .photoAuthorization:
+                return "취소"
+            case .cancelEditing:
+                return "종료"
+            }
+        }
+        
+        var secondaryAction: Action.View {
+            return .tapPopUpSecondaryButton(popUp: self)
+        }
+        
+        var primaryTitle: String {
+            switch self {
+            case .photoAuthorization:
+                return "확인"
+            case .cancelEditing:
+                return "계속 수정"
+            }
+        }
+        
+        var primaryAction: Action.View {
+            return .tapPopUpPrimaryButton(popUp: self)
+        }
+    }
+}

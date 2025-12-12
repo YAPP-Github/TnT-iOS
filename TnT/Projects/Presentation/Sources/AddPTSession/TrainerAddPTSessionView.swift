@@ -39,10 +39,7 @@ public struct TrainerAddPTSessionView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Header()
-                        .padding(.bottom, 28)
-                    
-                    VStack(spacing: 48) {
+                    VStack(spacing: 32) {
                         TraineeDropDown()
                         
                         PtDateDropDown()
@@ -56,7 +53,7 @@ public struct TrainerAddPTSessionView: View {
                         
                         Memo()
                     }
-                    .padding(.horizontal, 20)
+                    .padding(20)
                     
                     Spacer()
                 }
@@ -65,12 +62,14 @@ public struct TrainerAddPTSessionView: View {
         }
         .bottomFixWith {
             TBottomButton(
-                title: "완료",
+                title: "다음",
                 isEnable: store.view_isSubmitButtonEnabled
             ) {
                 send(.tapSubmitButton)
             }
+            .clipShape(.rect(cornerRadius: 12))
             .padding(.bottom, .safeAreaBottom)
+            .padding(.horizontal, 16)
             .disabled(!store.view_isSubmitButtonEnabled)
             .debounce()
         }
@@ -112,8 +111,16 @@ public struct TrainerAddPTSessionView: View {
             PopUpView()
         }
         .onChange(of: store.view_bottomSheetItem) { oldValue, newValue in
-            if oldValue != newValue {
-                send(.setFocus(oldValue?.field, newValue?.field))
+            guard oldValue?.field != newValue?.field else { return }
+            if let newField = newValue?.field {
+                send(.setFocus(store.view_focusField, newField))
+            } else {
+                send(.setFocus(oldValue?.field, nil))
+            }
+        }
+        .onChange(of: store.view_focusField) { _, newValue in
+            if focusedField != newValue {
+                focusedField = newValue
             }
         }
         .onChange(of: focusedField) { oldValue, newValue in
@@ -138,22 +145,22 @@ public struct TrainerAddPTSessionView: View {
     
     @ViewBuilder
     private func TraineeDropDown() -> some View {
-        TTextField(
+        TBoxTextField(
             placeholder: "회원을 입력해주세요",
             text: Binding(get: {
                 store.trainee?.name ?? ""
             }, set: { _ in }),
-            textFieldStatus: $store.view_traineeStatus
+            textFieldStatus: $store.view_traineeStatus,
+            isFocused: store.view_focusField == .trainee
         ) {
-            TTextField.RightView(
+            TBoxTextField.RightView(
                 style: .dropDown(
-                    tintColor: focusedField == .ptDate ? Color.neutral600 : Color.neutral400,
+                    tintColor: store.view_focusField == .trainee ? Color.neutral600 : Color.neutral400,
                     tapAction: { }
                 )
             )
         }
         .withSectionLayout(header: .init(isRequired: true, title: "회원선택", limitCount: nil, textCount: nil))
-        .focused($focusedField, equals: .ptDate)
         .allowsHitTesting(false)
         .overlay(
             Rectangle()
@@ -167,22 +174,22 @@ public struct TrainerAddPTSessionView: View {
     
     @ViewBuilder
     private func PtDateDropDown() -> some View {
-        TTextField(
+        TBoxTextField(
             placeholder: "날짜를 입력해주세요",
             text: Binding(get: {
                 store.ptDate?.toString(format: .yyyyMMddSlash) ?? ""
             }, set: { _ in }),
-            textFieldStatus: $store.view_ptDateStatus
+            textFieldStatus: $store.view_ptDateStatus,
+            isFocused: store.view_focusField == .ptDate
         ) {
-            TTextField.RightView(
+            TBoxTextField.RightView(
                 style: .dropDown(
-                    tintColor: focusedField == .ptDate ? Color.neutral600 : Color.neutral400,
+                    tintColor: store.view_focusField == .ptDate ? Color.neutral600 : Color.neutral400,
                     tapAction: { }
                 )
             )
         }
         .withSectionLayout(header: .init(isRequired: true, title: "PT 날짜", limitCount: nil, textCount: nil))
-        .focused($focusedField, equals: .trainee)
         .allowsHitTesting(false)
         .overlay(
             Rectangle()
@@ -198,22 +205,22 @@ public struct TrainerAddPTSessionView: View {
     private func TimeDropDown() -> some View {
         HStack(alignment: .bottom, spacing: 12) {
             // StartTime
-            TTextField(
+            TBoxTextField(
                 placeholder: Date().toString(format: .HHmm),
                 text: Binding(get: {
                     store.startTime?.toString(format: .HHmm) ?? ""
                 }, set: { _ in }),
-                textFieldStatus: $store.view_startTimeStatus
+                textFieldStatus: $store.view_startTimeStatus,
+                isFocused: store.view_focusField == .startTime
             ) {
-                TTextField.RightView(
+                TBoxTextField.RightView(
                     style: .dropDown(
-                        tintColor: focusedField == .ptDate ? Color.neutral600 : Color.neutral400,
+                        tintColor: store.view_focusField == .startTime ? Color.neutral600 : Color.neutral400,
                         tapAction: { }
                     )
                 )
             }
             .withSectionLayout(header: .init(isRequired: true, title: "시작 시간", limitCount: nil, textCount: nil))
-            .focused($focusedField, equals: .trainee)
             .allowsHitTesting(false)
             .overlay(
                 Rectangle()
@@ -229,22 +236,22 @@ public struct TrainerAddPTSessionView: View {
                 .padding(8)
             
             // EndTime
-            TTextField(
+            TBoxTextField(
                 placeholder: Date().addingTimeInterval(3600).toString(format: .HHmm),
                 text: Binding(get: {
                     store.endTime?.toString(format: .HHmm) ?? ""
                 }, set: { _ in }),
-                textFieldStatus: $store.view_endTimeStatus
+                textFieldStatus: $store.view_endTimeStatus,
+                isFocused: store.view_focusField == .endTime
             ) {
-                TTextField.RightView(
+                TBoxTextField.RightView(
                     style: .dropDown(
-                        tintColor: focusedField == .ptDate ? Color.neutral600 : Color.neutral400,
+                        tintColor: store.view_focusField == .endTime ? Color.neutral600 : Color.neutral400,
                         tapAction: { }
                     )
                 )
             }
             .withSectionLayout(header: .init(isRequired: true, title: "종료 시간", limitCount: nil, textCount: nil))
-            .focused($focusedField, equals: .endTime)
             .allowsHitTesting(false)
             .overlay(
                 Rectangle()
@@ -310,7 +317,7 @@ public struct TrainerAddPTSessionView: View {
     private func Memo() -> some View {
         VStack(spacing: 8) {
             TTextField.Header(isRequired: false, title: "메모하기", limitCount: nil, textCount: nil)
-            TTextEditor(
+            TBoxTextEditor(
                 placeholder: "PT 수업에서 기억해야 할 것을 메모해보세요",
                 text: $store.memo,
                 textEditorStatus: $store.view_memoStatus,
@@ -341,7 +348,7 @@ public struct TrainerAddPTSessionView: View {
                 alertState: .init(
                     title: popUp.title,
                     message: popUp.message,
-                    showAlertIcon: popUp.showAlertIcon,
+                    showAlertIcon: popUp.showAlertIcon, icon: popUp.icon,
                     buttons: buttons
                 )
             )

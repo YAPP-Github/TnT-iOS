@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "icn_check_mark_light_green.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

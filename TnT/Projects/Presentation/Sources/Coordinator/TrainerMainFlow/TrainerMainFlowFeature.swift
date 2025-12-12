@@ -70,6 +70,15 @@ public struct TrainerMainFlowFeature {
                         switch screen {
                         case .onboardingLogin:
                             return .send(.switchFlow(.onboardingFlow(.init())))
+
+                        case .mypageInfoEdit(let info):
+                            state.path.append(.trainerMyPageEdit(.init(currentUserInfo: .init(
+                                prevProfileImageURL: info.prevProfileImageURL,
+                                removeImage: false,
+                                memberType: .trainer,
+                                name: info.name
+                            ))))
+                            return .none
                         }
                     }
                     
@@ -90,6 +99,10 @@ public struct TrainerMainFlowFeature {
 
                     /// 트레이너 수업 추가 -> 홈으로
                 case .element(id: _, action: .addPTSession(.setNavigating)):
+                    state.path.removeSubrange(1...)
+                    return .none
+                    
+                case .element(id: _, action: .trainerMyPageEdit(.setNavigating)):
                     state.path.removeSubrange(1...)
                     return .none
                     
@@ -135,5 +148,7 @@ extension TrainerMainFlowFeature {
         // MARK: MyPage
         /// 초대코드 발급
         case trainerMakeInvitationCodePage(MakeInvitationCodeFeature)
+        /// 개인정보 수정
+        case trainerMyPageEdit(TrainerMyPageEditFeature)
     }
 }

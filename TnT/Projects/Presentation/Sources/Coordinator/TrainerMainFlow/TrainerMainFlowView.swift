@@ -46,6 +46,8 @@ public struct TrainerMainFlowView: View {
                 // MARK: MyPage
             case .trainerMakeInvitationCodePage(let store):
                 MakeInvitationCodeView(store: store)
+            case .trainerMyPageEdit(let store):
+                TrainerMyPageEditView(store: store)
             }
         }
     }

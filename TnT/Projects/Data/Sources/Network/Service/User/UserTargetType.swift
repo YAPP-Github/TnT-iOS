@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 import Domain
 
@@ -77,24 +78,10 @@ extension UserTargetType: TargetType {
             return .requestJSONEncodable(encodable: reqDto)
 
         case let .postSignUp(reqDto, imgData):
-            let jsons: [MultipartJSON] = [.init(jsonName: "request", json: reqDto)]
-
-            // 프로필 이미지가 있을 경우 멀티파트 업로드 처리
-            let files: [MultipartFile] = imgData.map {
-                [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
-            } ?? []
-
-            return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
+            return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
 
         case let .putUpdateUserInfo(reqDto, imgData):
-            let jsons: [MultipartJSON] = [.init(jsonName: "request", json: reqDto)]
-
-            // 프로필 이미지가 있을 경우 멀티파트 업로드 처리
-            let files: [MultipartFile] = imgData.map {
-                [.init(fieldName: "profileImage", fileName: "profile.png", mimeType: "image/png", data: $0)]
-            } ?? []
-
-            return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
+            return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
         }
     }
     
@@ -129,5 +116,38 @@ extension UserTargetType: TargetType {
                 RetryInterceptor(maxRetryCount: 2)
             ]
         }
+    }
+    
+    /// 프로필 멀티파트 업로드 (DTO + 선택 이미지)
+    private func makeProfileMultipartUpload<T: Encodable>(dto: T, imageData: Data?) -> RequestTask {
+        let jsons: [MultipartJSON] = [.init(jsonName: "request", json: dto)]
+        var files: [MultipartFile] = []
+
+        if let imageData {
+            let format = imageData.imageFormat
+            let fileInfo = (
+                name: "profile.\(format.fileExtension)",
+                mime: format.mimeType
+            )
+            
+            let compressedData: Data
+            if let image = UIImage(data: imageData),
+               let data = image.compressedData(maxSizeMB: 10.0, isPNG: format == .png) {
+                compressedData = data
+            } else {
+                compressedData = imageData
+            }
+
+            files = [
+                .init(
+                    fieldName: "profileImage",
+                    fileName: fileInfo.name,
+                    mimeType: fileInfo.mime,
+                    data: compressedData
+                )
+            ]
+        }
+
+        return .uploadMultipart(jsons: jsons, files: files, additionalFields: [:])
     }
 }

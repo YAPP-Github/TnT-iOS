@@ -15,7 +15,7 @@ extension UIImage {
     ///   - isPNG: 원본이 PNG인 경우, PNG로 압축할지 여부 (기본값: true)
     /// - Returns: 압축된 이미지 데이터 (JPEG 또는 PNG)
     /// - Note: PNG 압축은 무손실이지만, 크기 감소 효과가 적고 시간이 오래 걸릴 수 있습니다.
-    ///         JPEG 압축은 손실 압축이지만 크기를 크게 줄일 수 있습니다..
+    ///         JPEG 압축은 손실 압축이지만 크기를 크게 줄일 수 있습니다.
     func compressedData(maxSizeMB: Double = 10.0, isPNG: Bool = false) -> Data? {
         let maxSizeBytes: Int = Int(maxSizeMB * 1024 * 1024)
         
@@ -34,5 +34,44 @@ extension UIImage {
         }
         
         return imageData
+    }
+
+}
+
+extension Data {
+    enum ImageFormat {
+        case jpeg
+        case png
+        case unknown
+
+        var fileExtension: String {
+            switch self {
+            case .jpeg, .unknown:
+                return "jpg"
+            case .png:
+                return "png"
+            }
+        }
+
+        var mimeType: String {
+            switch self {
+            case .jpeg, .unknown:
+                return "image/jpeg"
+            case .png:
+                return "image/png"
+            }
+        }
+    }
+
+    var imageFormat: ImageFormat {
+        let pngSignature: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+
+        if self.starts(with: [0xFF, 0xD8]) {
+            return .jpeg
+        } else if self.starts(with: pngSignature) {
+            return .png
+        }
+
+        return .unknown
     }
 }

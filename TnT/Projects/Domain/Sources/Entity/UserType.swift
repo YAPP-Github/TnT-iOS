@@ -28,9 +28,9 @@ public extension UserType {
     var englishName: String {
         switch self {
         case .trainer:
-            return "trainer"
+            return "TRAINER"
         case .trainee:
-            return "trainee"
+            return "TRAINEE"
         }
     }
 }

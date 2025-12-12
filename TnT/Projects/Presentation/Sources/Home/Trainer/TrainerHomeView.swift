@@ -31,12 +31,6 @@ public struct TrainerHomeView: View {
             }
             .background(Color.neutral100)
         }
-        .background(
-            VStack {
-                Color.common0
-                Color.neutral100
-            }
-        )
         .overlay(alignment: .bottomTrailing) {
             SessionAddButton()
         }
@@ -73,7 +67,8 @@ public struct TrainerHomeView: View {
                 TCalendarView(
                     selectedDate: $store.selectedDate,
                     currentPage: $store.view_currentPage,
-                    events: store.events
+                    events: store.events,
+                    mode: .week
                 )
                 .onChange(of: store.state.view_currentPage, { oldValue, newValue in
                     let current: Int = Calendar.current.component(.month, from: oldValue)
