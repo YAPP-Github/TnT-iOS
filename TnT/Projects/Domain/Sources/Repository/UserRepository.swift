@@ -44,9 +44,12 @@ public protocol UserRepository {
     /// - Returns: 마이페이지 표시에 필요한 응답 DTO (`GetMyPageInfoResDTO`)
     /// - Throws: 네트워크 오류 또는 서버에서 반환한 오류를 발생시킬 수 있음
     func getMyPageInfo() async throws -> GetMyPageInfoResDTO
-    
-    /// 마이페이지 정보 수정 요청
-    /// - Returns: 마이페이지 정보 수정 응답 DTO
+
+    /// 회원 정보 수정 요청
+    /// - Parameters:
+    ///   - reqDTO: 회원 정보 수정 요청에 필요한 데이터
+    ///   - profileImage: 사용자가 업로드한 프로필 이미지 (옵션)
+    /// - Returns: 회원 정보 수정 성공 시 빈 응답
     /// - Throws: 네트워크 오류 또는 서버에서 반환한 오류를 발생시킬 수 있음
-    func putMyInfo(_ reqDTO: PutMyInfoReqDTO, profileImage: Data?) async throws -> EmptyResponse
+    func putUpdateUserInfo(_ reqDTO: UpdateUserInfoRequestDTO, profileImage: Data?) async throws -> EmptyResponse
 }

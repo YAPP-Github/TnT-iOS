@@ -14,6 +14,12 @@ import DesignSystem
 import UserNotifications
 import UIKit
 
+extension SharedKey where Self == InMemoryKey<TraineeMyPageEntity> {
+    static public var trainee: Self {
+        inMemory("trainee")
+    }
+}
+
 @Reducer
 public struct TraineeMyPageFeature {
     
@@ -26,6 +32,9 @@ public struct TraineeMyPageFeature {
         @Shared(.appStorage(AppStorage.hideHomePopupUntil)) var hidePopupUntil: Date?
         /// 트레이너 연결 여부
         @Shared(.appStorage(AppStorage.isConnected)) var isConnected: Bool = false
+        /// 사용자 정보
+        @Shared(.trainee) var traineeData = .init()
+
         /// 사용자 이름
         var userName: String
         /// 사용자 이미지 URL
@@ -40,7 +49,7 @@ public struct TraineeMyPageFeature {
         // MARK: UI related state
         /// 트레이너 연결 여부
         var view_isTrainerConnected: Bool {
-            return !self.trainerName.isEmpty
+            return self.isConnected
         }
         /// 표시되는 팝업
         var view_popUp: PopUp?
@@ -150,8 +159,7 @@ public struct TraineeMyPageFeature {
                     return .none
                     
                 case .tapEditProfileButton:
-                    print("tapEditProfileButton")
-                    return .none
+                    return .send(.setNavigating(.traineeInfoEdit))
                     
                 case .tapConnectTrainerButton:
                     return .send(.setNavigating(.traineeInvitationCodeInput))
@@ -246,6 +254,7 @@ public struct TraineeMyPageFeature {
                 state.$isConnected.withLock { $0 = myPageInfo.isConnected }
                 state.userName = myPageInfo.name
                 state.userImageUrl = myPageInfo.profileImageUrl
+                state.$traineeData.withLock { $0 = myPageInfo }
                 return .none
             
             case .setPopUpStatus(let popUp):

@@ -96,18 +96,34 @@ public struct PostSignUpReqDTO: Encodable {
     }
 }
 
-/// 내 정보 수정 요청 DTO
-public struct PutMyInfoReqDTO: Encodable {
-    
+/// 회원 정보 수정 요청 DTO
+public struct UpdateUserInfoRequestDTO: Encodable, Equatable {
+    /// 이미지 삭제 여부
+    public let removeImage: Bool
+    /// 회원 타입 (TRAINER, TRAINEE)
+    public let memberType: String
+    /// 회원 이름
+    public let name: String
+    /// 생년월일 (yyyy-MM-dd)
+    public let birthday: String?
+    /// 키 (cm)
+    public let height: Double?
+    /// 몸무게 (kg)
+    public let weight: Double?
+    /// 주의사항
+    public let cautionNote: String?
+    /// PT 목적 (한글 문자열 배열)
+    public let ptGoals: [String]?
+
     public init(
         removeImage: Bool,
         memberType: String,
         name: String,
-        birthday: String? = nil,
-        height: Double? = nil,
-        weight: Double? = nil,
-        cautionNote: String? = nil,
-        goalContents: [String]? = nil
+        birthday: String?,
+        height: Double?,
+        weight: Double?,
+        cautionNote: String?,
+        ptGoals: [String]?
     ) {
         self.removeImage = removeImage
         self.memberType = memberType
@@ -116,16 +132,6 @@ public struct PutMyInfoReqDTO: Encodable {
         self.height = height
         self.weight = weight
         self.cautionNote = cautionNote
-        self.goalContents = goalContents ?? []
+        self.ptGoals = ptGoals
     }
-    
-    public var removeImage: Bool
-    public var memberType: String
-    public var name: String
-    public var birthday: String?
-    public var height: Double?
-    public var weight: Double?
-    public var cautionNote: String?
-    public var goalContents: [String]
 }
-

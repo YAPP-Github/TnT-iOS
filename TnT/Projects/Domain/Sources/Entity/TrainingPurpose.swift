@@ -42,4 +42,24 @@ public extension TrainingPurpose {
             return "자세 교정"
         }
     }
+
+    /// 한글 이름으로부터 TrainingPurpose를 생성
+    init?(koreanName: String) {
+        switch koreanName {
+        case "체중 감량":
+            self = .loseWeight
+        case "근력 향상":
+            self = .gainMuscle
+        case "건강 관리":
+            self = .healthWellness
+        case "유연성 향상":
+            self = .flexibilityImprovement
+        case "바디프로필":
+            self = .bodyProfile
+        case "자세 교정":
+            self = .postureCorrection
+        default:
+            return nil
+        }
+    }
 }

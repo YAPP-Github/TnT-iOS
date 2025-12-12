@@ -14,7 +14,13 @@ public extension GetMyPageInfoResDTO {
             isConnected: self.trainee?.isConnected ?? false,
             name: self.name,
             profileImageUrl: self.profileImageUrl,
-            socialType: self.socialType
+            socialType: self.socialType,
+            birthday: self.trainee?.birthday,
+            age: self.trainee?.age,
+            height: self.trainee?.height,
+            weight: self.trainee?.weight,
+            cautionNote: self.trainee?.cautionNote,
+            ptGoals: self.trainee?.ptGoals ?? []
         )
     }
     
@@ -30,7 +36,7 @@ public extension GetMyPageInfoResDTO {
 }
 
 public extension EditUserInfoEntity {
-    func toDTO() -> PutMyInfoReqDTO {
+    func toDTO() -> UpdateUserInfoRequestDTO {
         return .init(
             removeImage: self.removeImage,
             memberType: self.memberType.englishName,
@@ -39,7 +45,7 @@ public extension EditUserInfoEntity {
             height: self.height,
             weight: self.weight,
             cautionNote: self.cautionNote,
-            goalContents: self.goalContents
+            ptGoals: self.goalContents
         )
     }
 }

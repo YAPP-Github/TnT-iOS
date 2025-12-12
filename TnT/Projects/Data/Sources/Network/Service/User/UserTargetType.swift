@@ -26,7 +26,7 @@ public enum UserTargetType {
     /// 마이페이지 정보 요청
     case getMyPageInfo
     /// 회원 정보 수정 요청
-    case putMyInfo(reqDTO: PutMyInfoReqDTO, imgData: Data?)
+    case putUpdateUserInfo(reqDTO: UpdateUserInfoRequestDTO, imgData: Data?)
 }
 
 extension UserTargetType: TargetType {
@@ -38,20 +38,20 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck:
             return "/check-session"
-            
+
         case .postSocialLogin:
             return "/login"
-            
+
         case .postSignUp:
             return "/members/sign-up"
-            
+
         case .postLogout:
             return "/logout"
-            
+
         case .postWithdrawal:
             return "/members/withdraw"
-            
-        case .getMyPageInfo, .putMyInfo:
+
+        case .getMyPageInfo, .putUpdateUserInfo:
             return "/members"
         }
     }
@@ -60,11 +60,11 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .getMyPageInfo:
             return .get
-            
+
         case .postSocialLogin, .postSignUp, .postLogout, .postWithdrawal:
             return .post
-        
-        case .putMyInfo:
+
+        case .putUpdateUserInfo:
             return .put
         }
     }
@@ -73,14 +73,14 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
             return .requestPlain
-        
+
         case .postSocialLogin(let reqDto):
             return .requestJSONEncodable(encodable: reqDto)
-            
+
         case let .postSignUp(reqDto, imgData):
             return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
-            
-        case let .putMyInfo(reqDto, imgData):
+
+        case let .putUpdateUserInfo(reqDto, imgData):
             return makeProfileMultipartUpload(dto: reqDto, imageData: imgData)
         }
     }
@@ -89,24 +89,18 @@ extension UserTargetType: TargetType {
         switch self {
         case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo:
             return nil
-            
+
         case .postSocialLogin:
             return ["Content-Type": "application/json"]
-            
-        case .postSignUp:
-            return [
-                "Content-Type": "multipart/form-data",
-                "Authorization": "SESSION-ID 1111"
-            ]
-            
-        case .putMyInfo:
+
+        case .postSignUp, .putUpdateUserInfo:
             return ["Content-Type": "multipart/form-data"]
         }
     }
     
     var interceptors: [any Interceptor] {
         switch self {
-        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo, .putMyInfo:
+        case .getSessionCheck, .postLogout, .postWithdrawal, .getMyPageInfo, .putUpdateUserInfo:
             return [
                 LoggingInterceptor(),
                 AuthTokenInterceptor(),

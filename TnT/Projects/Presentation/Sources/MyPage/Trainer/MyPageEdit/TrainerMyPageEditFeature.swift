@@ -139,7 +139,9 @@ public struct TrainerMyPageEditFeature {
         
         BindingReducer(action: \.view)
         
-        Reduce { state, action in
+        Reduce {
+            state,
+            action in
             switch action {
             case .view(let action):
                 switch action {
@@ -173,15 +175,15 @@ public struct TrainerMyPageEditFeature {
                 case .tapWriteButton:
                     state.view_isBottomSheetPresented = true
                     return .none
-
+                    
                 case .tapDoneButton:
                     state.currentUserInfo.name = state.userName
                     return .send(.api(.putUserInfo(info: state.currentUserInfo, profileImage: state.userImageData)))
-
+                    
                 case .tapBottomSheetDeleteButton:
                     state.view_isBottomSheetPresented = false
                     return .send(.imagePicked(nil))
-
+                    
                 case .tapBottomSheetSelectButton:
                     return .none
                     
@@ -204,7 +206,7 @@ public struct TrainerMyPageEditFeature {
                            UIApplication.shared.canOpenURL(url) {
                             UIApplication.shared.open(url)
                         }
-                    
+                        
                         return .none
                         
                     case .cancelEditing:
@@ -217,14 +219,19 @@ public struct TrainerMyPageEditFeature {
                 
             case .api(let action):
                 switch action {
-
+                    
                 case let .putUserInfo(userInfo, image):
                     return .run { send in
-                        let result = try await userUseRepoCase.putMyInfo(
+                        let result = try await userUseRepoCase.putUpdateUserInfo(
                             .init(
                                 removeImage: userInfo.removeImage,
                                 memberType: userInfo.memberType.englishName,
-                                name: userInfo.name
+                                name: userInfo.name,
+                                birthday: nil,
+                                height: nil,
+                                weight: nil,
+                                cautionNote: nil,
+                                ptGoals: nil
                             ),
                             profileImage: image
                         )
