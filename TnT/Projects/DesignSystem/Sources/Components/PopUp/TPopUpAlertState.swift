@@ -17,6 +17,8 @@ public struct TPopupAlertState: Equatable {
     public var message: String?
     /// 팝업의 경고 아이콘 표시 (옵션)
     public var showAlertIcon: Bool
+    /// 팝업에 표시할 커스텀 아이콘 (옵션)
+    public var icon: PopupIcon?
     /// 팝업에 표시될 버튼 배열
     public var buttons: [ButtonState]
     
@@ -25,17 +27,39 @@ public struct TPopupAlertState: Equatable {
     ///   - title: 팝업의 제목
     ///   - message: 팝업의 메시지 (선택 사항, 기본값: `nil`)
     ///   - showAlertIcon: 팝업의 경고 아이콘 표시 (기본값: `false`)
+    ///   - icon: 팝업에 표시할 커스텀 아이콘 (기본값: `nil`)
     ///   - buttons: 팝업에 표시할 버튼 배열 (기본값: 빈 배열)
     public init(
         title: String,
         message: String? = nil,
         showAlertIcon: Bool = false,
+        icon: PopupIcon? = nil,
         buttons: [ButtonState] = []
     ) {
         self.title = title
         self.message = message
         self.showAlertIcon = showAlertIcon
+        self.icon = icon
         self.buttons = buttons
+    }
+}
+
+public extension TPopupAlertState {
+    enum PopupIcon {
+        case warning
+        case checkMarkLightGreen
+        case questionMark
+        
+        var imageResource: ImageResource {
+            switch self {
+            case .warning:
+                return .icnWarning
+            case .checkMarkLightGreen:
+                return .icnCheckMarkLightGreen
+            case .questionMark:
+                return .icnQuestionMark
+            }
+        }
     }
 }
 
